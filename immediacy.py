@@ -60,30 +60,53 @@ OOS_FRACTION = 0.25
 
 @dataclass(frozen=True)
 class Contract:
-    symbol: str                # Databento / CME product root
+    symbol: str                # what we TRADE (may be a micro)
     cftc_code: str             # CFTC contract market code, for the DCOT join
     sector: str
-    multiplier: float          # contract units
+    multiplier: float          # contract units of the TRADED contract
     tick: float                # minimum price increment, in quote units
     commission_side: float     # all-in commission per side, USD
+    price_root: str = ""       # Databento root to FETCH prices from (full-size)
     dataset: str = "GLBX.MDP3"
+
+    @property
+    def fetch_root(self) -> str:
+        return self.price_root or self.symbol
+
+
+# Prices are fetched from the FULL-SIZE contract even where we trade the micro. The micro
+# is a fractional clone of the same underlying with an identical price series, and the
+# full-size contract has history back to 2010 while the micro does not: Micro WTI listed
+# in 2021, Micro Copper in 2022. Sizing applies the micro multiplier; the returns are the
+# same series either way.
+#
+# LISTED_FROM is when the contract we actually TRADE became available. Before that date the
+# strategy could not have held it, so the universe is time-varying and the engine must know.
+# These are estimates — run dbn_diagnose.py and replace them with measured values.
+LISTED_FROM = {
+    "MCL": "2021-07-12",   # VERIFY
+    "MHG": "2022-01-01",   # VERIFY
+    "MGC": "2010-10-01",   # VERIFY
+    "SIL": "2022-01-01",   # VERIFY
+    "KE":  "2013-01-01",   # KCBT -> CME Globex migration. VERIFY
+}
 
 
 UNIVERSE = [
-    #        symbol  cftc      sector       mult      tick     comm/side
-    Contract("MCL", "067411", "energy",     100,      0.01,    1.50),
-    Contract("QG",  "023651", "energy",     2_500,    0.005,   1.50),
-    Contract("MGC", "088691", "metals",     10,       0.10,    1.50),
-    Contract("SIL", "084691", "metals",     1_000,    0.005,   1.50),
-    Contract("MHG", "085692", "metals",     2_500,    0.0005,  1.50),
-    Contract("ZC",  "002602", "grains",     5_000,    0.0025,  3.00),
-    Contract("ZW",  "001602", "grains",     5_000,    0.0025,  3.00),
-    Contract("KE",  "001612", "grains",     5_000,    0.0025,  3.00),
-    Contract("ZS",  "005602", "oilseeds",   5_000,    0.0025,  3.00),
-    Contract("ZM",  "026603", "oilseeds",   100,      0.10,    3.00),
-    Contract("ZL",  "007601", "oilseeds",   60_000,   0.0001,  3.00),
-    Contract("LE",  "057642", "livestock",  40_000,   0.00025, 3.00),
-    Contract("HE",  "054642", "livestock",  40_000,   0.00025, 3.00),
+    #        symbol  cftc      sector       mult      tick     comm/side  price_root
+    Contract("MCL", "067651", "energy",     100,      0.01,    0.75,      "CL"),
+    Contract("QG",  "023651", "energy",     2_500,    0.005,   0.75,      "NG"),
+    Contract("MGC", "088691", "metals",     10,       0.10,    0.75,      "GC"),
+    Contract("SIL", "084691", "metals",     1_000,    0.005,   0.75,      "SI"),
+    Contract("MHG", "085692", "metals",     2_500,    0.0005,  0.75,      "HG"),
+    Contract("ZC",  "002602", "grains",     5_000,    0.0025,  1.50,      "ZC"),
+    Contract("ZW",  "001602", "grains",     5_000,    0.0025,  1.50,      "ZW"),
+    Contract("KE",  "001612", "grains",     5_000,    0.0025,  1.50,      "KE"),
+    Contract("ZS",  "005602", "oilseeds",   5_000,    0.0025,  1.50,      "ZS"),
+    Contract("ZM",  "026603", "oilseeds",   100,      0.10,    1.50,      "ZM"),
+    Contract("ZL",  "007601", "oilseeds",   60_000,   0.0001,  1.50,      "ZL"),
+    Contract("LE",  "057642", "livestock",  40_000,   0.00025, 1.50,      "LE"),
+    Contract("HE",  "054642", "livestock",  40_000,   0.00025, 1.50,      "HE"),
 ]
 
 BY_SYMBOL = {c.symbol: c for c in UNIVERSE}
@@ -477,7 +500,11 @@ def run_backtest(front: pd.DataFrame, signals: pd.DataFrame,
         cost_today = dict(commission=0.0, spread=0.0, impact=0.0, total=0.0)
         if dt in fc_by_date:
             g = fc_by_date[dt]
-            n_active = max(int((g["F"].abs() > 0).sum()), 1)
+            tradeable = [s for s in g.loc[g["F"].abs() > 0, "symbol"]
+                         if s in piv_px.columns and dt in piv_px.index
+                         and np.isfinite(piv_px.at[dt, s])
+                         and dt >= pd.Timestamp(LISTED_FROM.get(s, "1900-01-01"))]
+            n_active = max(len(tradeable), 1)
             win = piv_ret.loc[:dt].tail(252)
             cm = win.corr().to_numpy() if win.shape[0] >= 60 else None
             rho_t = 0.15 if cm is None else float(
@@ -489,6 +516,8 @@ def run_backtest(front: pd.DataFrame, signals: pd.DataFrame,
                 sym = row["symbol"]
                 if sym not in piv_px.columns or dt not in piv_px.index:
                     continue
+                if dt < pd.Timestamp(LISTED_FROM.get(sym, "1900-01-01")):
+                    continue          # contract not listed yet: cannot have held it
                 px = piv_px.at[dt, sym]
                 sd = sigma_d.at[dt, sym] if dt in sigma_d.index else np.nan
                 if not (np.isfinite(px) and np.isfinite(sd)) or sd <= 0:
