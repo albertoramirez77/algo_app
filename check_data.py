@@ -51,7 +51,13 @@ def check_cot_gaps(cot: pd.DataFrame) -> None:
         print("  If you do not see it, your data may be back-filled rather than")
         print("  point-in-time, which would be a look-ahead problem.")
     else:
-        print("  No large gaps found. Check that your data covers late 2025.")
+        print("  No large gaps found.")
+        print("  This is EXPECTED for archives downloaded after December 2025: the CFTC")
+        print("  back-filled the shutdown weeks at their original measurement dates, so")
+        print("  the gap is invisible in the file even though the reports did not exist")
+        print("  at the time. The engine compensates — cot_release_date() holds every")
+        print("  report measured between 2025-10-01 and 2025-12-29 until the backlog")
+        print("  actually cleared, so the backtest cannot trade on them early.")
 
 
 def check_rolls(px: pd.DataFrame) -> None:
@@ -79,6 +85,14 @@ def check_signal(cot: pd.DataFrame, px: pd.DataFrame) -> pd.DataFrame:
     q = sig["Q"].dropna()
     print(f"  Q observations: {len(q):,}")
     print(f"  mean |Q|: {q.abs().mean():.4f}   (KRT report 0.035 across 26 commodities)")
+    if q.abs().mean() < 0.025:
+        print("       Lower than published, and expected: KRT's headline uses the legacy")
+        print("       COMMERCIAL category, which bundles swap dealers in with producers.")
+        print("       We read Producer/Merchant only, a narrower and more liquid group,")
+        print("       so position changes are a smaller fraction of open interest. KRT's")
+        print("       own disaggregated test gives producers a coefficient of 8.83 versus")
+        print("       ~4.77 for all hedgers, so a smaller spread meets a larger slope.")
+        print("       Roughly a wash on paper; the backtest settles it directly.")
     print(f"  std  Q  : {q.std():.4f}")
     print(f"  Q beyond +/-25% of open interest: {(q.abs() > 0.25).sum()} "
           f"({(q.abs() > 0.25).mean():.2%})")

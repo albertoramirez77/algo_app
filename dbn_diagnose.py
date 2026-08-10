@@ -42,8 +42,8 @@ PROBE = {
 
 
 def short(e: Exception) -> str:
-    m = str(e).replace("\n", " ")
-    return f"{type(e).__name__}: {m[:70]}"
+    m = " ".join(str(e).split())
+    return f"{type(e).__name__}: {m[:170]}"
 
 
 def client():
@@ -74,20 +74,33 @@ def dataset_range(c) -> tuple[str, str]:
         return "2010-06-06", str(date.today())
 
 
-def count(c, root: str, start: str, end: str):
+def count(c, root: str, start: str, end: str, _retries: int = 3):
     """
     One call. Returns (records, error_string).
 
-    A 422 symbology_invalid_request here means the root does not exist anywhere in
-    [start, end) — normally because the contract listed later than `start`.
+    Two different 422s arrive here and they mean opposite things:
+
+      symbology_invalid_request     the root does not exist anywhere in [start, end).
+                                    Normally the contract listed later than `start`,
+                                    so searching forward on the start date is right.
+      data_end_after_available_end  the END is past what the dataset holds. Nothing to
+                                    do with the symbol. Walk the end back and retry;
+                                    searching the start date would be pure waste.
     """
-    try:
-        n = c.metadata.get_record_count(
-            dataset=DATASET, schema=SCHEMA, symbols=[f"{root}.FUT"],
-            stype_in="parent", start=start, end=end)
-        return int(n), ""
-    except Exception as e:
-        return None, short(e)
+    e_use = end
+    for _ in range(_retries):
+        try:
+            n = c.metadata.get_record_count(
+                dataset=DATASET, schema=SCHEMA, symbols=[f"{root}.FUT"],
+                stype_in="parent", start=start, end=e_use)
+            return int(n), ""
+        except Exception as e:
+            msg = str(e)
+            if "data_end_after_available_end" in msg:
+                e_use = str(pd.Timestamp(e_use).date() - timedelta(days=1))
+                continue
+            return None, short(e)
+    return None, f"end date still rejected after walking back to {e_use}"
 
 
 def _search(c, root: str, cands: list[str], end: str) -> tuple[str | None, int]:
@@ -156,8 +169,11 @@ def main() -> None:
 
     c = client()
     ds_start, ds_end = dataset_range(c)
-    # half-open range: push the end out one day so the last session is included
-    end = str(pd.Timestamp(ds_end).date() + timedelta(days=1))
+    # Use the reported availability end EXACTLY. The previous version added a day to
+    # cover the half-open range convention, which asks for one day more than the
+    # dataset holds and returns 422 data_end_after_available_end for every symbol —
+    # a failure that looks like a symbology problem and is not.
+    end = ds_end
 
     if a.ping:
         t = time.time()
@@ -221,6 +237,12 @@ def main() -> None:
     print("  records large, cost 0 -> statistics is genuinely a cheap schema. Proceed")
     print("  usable_from later than 2010 -> that root lists later; the universe is")
     print("                                 time-varying and the engine must know")
+
+    if not (t["records"].fillna(0) > 0).any():
+        print("\nNOTHING RESOLVED. Before touching the roots, read the error text above —")
+        print("if it says data_end_after_available_end, the END date is the problem, not")
+        print("the symbols. If it says symbology_invalid_request, then check the roots.")
+        return
 
     late = t[t["usable_from"].notna() & (t["usable_from"] > ds_start)]
     if len(late):

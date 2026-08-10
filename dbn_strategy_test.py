@@ -42,8 +42,15 @@ import time
 import pandas as pd
 
 DATASET = "GLBX.MDP3"
-TEST_START, TEST_END = "2023-01-01", "2024-01-01"   # one year, one product
+TEST_START, TEST_END = "2023-03-01", "2023-03-08"   # ONE WEEK. See note below.
 ROOT = "CL"                                          # the worst case in the universe
+DAYS = 5                                             # trading days in the test window
+YEARS, PRODUCTS = 16, 13                             # for extrapolation
+
+# One week, not one year. At the throughput observed in the logs (~110 records/sec on
+# CL.FUT) a single year of the parent baseline would take roughly an hour on its own,
+# which defeats the point of a diagnostic. A week is enough to measure the rate and the
+# instrument count, and both extrapolate linearly.
 
 
 def client():
@@ -131,8 +138,9 @@ def main() -> None:
     print("\n" + "=" * 74)
     base = next((r for r in ok if r["approach"].startswith("parent")), None)
     for r in ok:
-        full = r["records"] * 16 * 13          # 16 years, 13 products
-        hours = (r["records"] * 16 * 13) / max(r["rec_per_sec"], 1) / 3600
+        per_year = r["records"] * 252 / DAYS
+        full = per_year * YEARS * PRODUCTS
+        hours = full / max(r["rec_per_sec"], 1) / 3600
         line = (f"  {r['approach']:34s} full download ≈ {full:>12,.0f} records, "
                 f"{hours:>6.1f}h")
         if base and r is not base and base["records"]:

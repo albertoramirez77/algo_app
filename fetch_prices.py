@@ -54,7 +54,7 @@ from immediacy import UNIVERSE, LISTED_FROM
 
 DATASET = "GLBX.MDP3"
 START = "2010-06-06"
-END = str(date.today())
+END = str(date.today())      # clamped to the dataset's real availability at startup
 CACHE = "cache"
 
 # Databento statistics stat_type codes. VERIFY WITH --inspect BEFORE TRUSTING THEM.
@@ -64,6 +64,24 @@ STAT_OPEN_INTEREST = 9
 
 # Roots that list later than START. Populate from dbn_diagnose.py output.
 ROOT_START: dict[str, str] = {}
+
+# REQUEST SHAPE. This is the single biggest determinant of how long the download takes.
+#
+#   continuous  CL.n.0   the front contract by open interest, ranked on the PREVIOUS
+#                        session. Two instruments scanned per product instead of ~2,190.
+#                        Measured throughput in the logs was ~17,000 rec/s on a small
+#                        root versus ~110 rec/s on CL.FUT — the cost is server-side
+#                        instrument scanning, not bandwidth.
+#
+#   parent      CL.FUT   every instrument sharing the root: all outright months AND
+#                        every calendar spread. Needed only if you want the whole curve.
+#
+# The open-interest roll is non-anticipating: Databento ranks on the prior session's
+# open interest, so no current-session information decides the current session's roll.
+# That was the objection to volume/OI rolls in the specification, and it does not apply
+# to this implementation. Known caveat: a reported symbology defect on the session
+# immediately after a holiday.
+MODE = "continuous"
 
 MAX_BISECT = 4        # 1 year -> down to ~3 weeks before giving up
 RETRIES = 3           # per chunk, before bisecting
@@ -81,7 +99,27 @@ def client():
     key = os.environ.get("DATABENTO_API_KEY")
     if not key:
         raise SystemExit("export DATABENTO_API_KEY='db-...' first")
-    return db.Historical(key)
+    c = db.Historical(key)
+    clamp_end(c)
+    return c
+
+
+def clamp_end(c) -> None:
+    """
+    Never request past what the dataset holds. Asking for even one day beyond returns
+    422 data_end_after_available_end for every symbol, which reads like a symbology
+    failure and is not. today() drifts past availability the moment the vendor is a
+    day behind, so this cannot be left as a constant.
+    """
+    global END
+    try:
+        r = c.metadata.get_dataset_range(dataset=DATASET)
+        avail = next((str(r[k])[:10] for k in ("end", "end_date") if k in r), None)
+        if avail and avail < END:
+            print(f"clamping end {END} -> {avail} (dataset availability)")
+            END = avail
+    except Exception as e:
+        print(f"could not read dataset range ({type(e).__name__}); using {END}")
 
 
 def classify(e: Exception) -> str:
@@ -111,11 +149,20 @@ def window(root: str) -> tuple[str, str]:
     return max(START, ROOT_START.get(root, START)), END
 
 
+def request_symbols(root: str) -> tuple[list[str], str]:
+    if MODE == "continuous":
+        return [f"{root}.n.0"], "continuous"
+    return [f"{root}.FUT"], "parent"
+
+
 def stream(c, root: str, schema: str, start: str, end: str, depth: int = 0):
     """
     One streaming request, with retries, bisecting the date range on repeated failure.
     A range that is too large for the gateway becomes two ranges that are not.
     """
+    syms, stype = request_symbols(root)
+    if schema == "definition":
+        syms, stype = [f"{root}.FUT"], "parent"
     for attempt in range(RETRIES + 1):
         if BUDGET["calls"] >= MAX_CALLS_PER_YEAR:
             raise RuntimeError(f"call budget exhausted for this year "
@@ -125,8 +172,8 @@ def stream(c, root: str, schema: str, start: str, end: str, depth: int = 0):
             with warnings.catch_warnings(record=True) as caught:
                 warnings.simplefilter("always")
                 df = c.timeseries.get_range(
-                    dataset=DATASET, schema=schema, symbols=[f"{root}.FUT"],
-                    stype_in="parent", start=start, end=end).to_df()
+                    dataset=DATASET, schema=schema, symbols=syms,
+                    stype_in=stype, start=start, end=end).to_df()
             for w in caught:
                 if "reduced quality" in str(w.message) or "degraded" in str(w.message):
                     DEGRADED.append(f"{root} {start[:7]}")
@@ -188,6 +235,15 @@ def shape_statistics(raw: pd.DataFrame) -> pd.DataFrame:
     if raw is None or raw.empty:
         return pd.DataFrame()
     s = flatten(raw)
+
+    # In continuous mode every row's `symbol` is the alias (CL.n.0), which never
+    # changes, so it cannot identify the held contract. instrument_id does: when it
+    # changes, the series has rolled. Roll detection and the rule that returns are
+    # never chained across a roll both depend on this being a real per-contract key.
+    if MODE == "continuous" and "instrument_id" in s.columns:
+        s = s.copy()
+        s["symbol"] = "id" + s["instrument_id"].astype("int64").astype(str)
+
     tscol = "ts_ref" if "ts_ref" in s.columns else "ts_recv"
     s["date"] = pd.to_datetime(s[tscol], utc=True, errors="coerce") \
                   .dt.tz_localize(None).dt.normalize()
@@ -222,7 +278,7 @@ def shape_statistics(raw: pd.DataFrame) -> pd.DataFrame:
 def fetch_year(c, root: str, year: int, lo: str, hi: str) -> pd.DataFrame:
     """One product-year of statistics, cached on disk."""
     os.makedirs(CACHE, exist_ok=True)
-    path = os.path.join(CACHE, f"{root}_{year}_stats.parquet")
+    path = os.path.join(CACHE, f"{root}_{year}_{MODE}_stats.parquet")
     if os.path.exists(path):
         return pd.read_parquet(path)
 
@@ -266,6 +322,22 @@ def live_expiries(c, root: str) -> pd.DataFrame:
     return out.dropna(subset=["expiry"])
 
 
+def attach_expiries_continuous(stats: pd.DataFrame) -> pd.DataFrame:
+    """
+    In continuous mode the roll has already happened upstream: we asked for the front
+    contract and that is what we got. build_front_series then has exactly one candidate
+    per date and its own nearest-expiry selection is a no-op, so the expiry column only
+    has to be far enough out never to filter a row. Roll detection still works, because
+    it keys on the contract identifier changing.
+
+    The roll rule we are adopting, and the one to state in the pitch, is: hold the
+    contract with the highest open interest as of the prior session.
+    """
+    out = stats.copy()
+    out["expiry"] = out["date"] + pd.Timedelta(days=400)
+    return out
+
+
 def attach_expiries(stats: pd.DataFrame, live: pd.DataFrame,
                     data_end: pd.Timestamp) -> pd.DataFrame:
     """
@@ -300,8 +372,11 @@ def fetch_product(c, ct) -> pd.DataFrame:
 
     stats = pd.concat(frames, ignore_index=True)
     stats = stats.drop_duplicates(["date", "contract"])
-    out = attach_expiries(stats, live_expiries(c, root),
-                          pd.Timestamp(stats["date"].max()))
+    if MODE == "continuous":
+        out = attach_expiries_continuous(stats)
+    else:
+        out = attach_expiries(stats, live_expiries(c, root),
+                              pd.Timestamp(stats["date"].max()))
     out = out.dropna(subset=["expiry"])
     out["symbol"] = ct.symbol          # label with the TRADED contract
     print(f"    total {len(out):,} rows, {out['contract'].nunique()} contracts, "
@@ -332,8 +407,9 @@ def estimate() -> None:
     rows = []
     for ct in UNIVERSE:
         lo, hi = window(ct.fetch_root)
+        syms, stype = request_symbols(ct.fetch_root)
         kw = dict(dataset=DATASET, schema="statistics",
-                  symbols=[f"{ct.fetch_root}.FUT"], stype_in="parent", start=lo, end=hi)
+                  symbols=syms, stype_in=stype, start=lo, end=hi)
         r = dict(trade=ct.symbol, fetch=ct.fetch_root, records=None, cost=None, note="")
         for k, fn in (("records", "get_record_count"), ("cost", "get_cost")):
             try:
@@ -403,8 +479,14 @@ def main() -> None:
     ap.add_argument("--estimate", action="store_true")
     ap.add_argument("--run", action="store_true")
     ap.add_argument("--products", default=None, help="subset, e.g. MCL,QG")
+    ap.add_argument("--mode", choices=["continuous", "parent"], default="continuous",
+                    help="continuous = front contract only (fast). "
+                         "parent = whole curve incl. spreads (slow)")
     ap.add_argument("--out", default="px.parquet")
     a = ap.parse_args()
+    global MODE
+    MODE = a.mode
+    print(f"request mode: {MODE}")
     if a.inspect:
         inspect(a.symbol)
     elif a.estimate:
