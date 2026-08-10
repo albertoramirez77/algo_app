@@ -387,22 +387,32 @@ def test_an_exactly_constant_pnl_is_caught_by_the_zero_variance_guard():
     assert _result([0.0] * 300).stats() == dict(n_days=300)
 
 
-def test_a_constant_nonzero_pnl_slips_past_the_guard_and_reports_an_absurd_sharpe():
+def test_a_constant_nonzero_pnl_is_caught_by_the_tolerance_guard():
     """
-    CHARACTERISATION OF A KNOWN DEFECT — deliberately left unfixed.
-
-    Result.stats guards with `r.std() == 0`. A constant nonzero daily P&L has a
+    Result.stats used to guard with `r.std() == 0`. A constant nonzero daily P&L has a
     standard deviation of floating-point dust rather than exactly zero, so the guard
-    misses and the reported Sharpe is of order 1e17.
+    missed and the reported Sharpe came back at order 1e17.
 
-    Same shape as the `se > 0` guard in cluster_ols: an exact-equality test standing in
-    for a tolerance. The real run's P&L is never constant, so nothing on the record
-    depends on it. The fix is a relative tolerance, which is a behaviour change and the
-    author's call.
+    The guard is now `not isfinite(std) or std < 1e-12`. The threshold is far below any
+    real daily P&L — the in-sample run's is around 1e-3 of capital — so it changes no
+    reported number and only catches the degenerate case.
     """
     st = _result([100.0] * 300).stats()
-    assert st["ann_vol"] < 1e-15
-    assert st["sharpe"] > 1e15
+    assert st == dict(n_days=300)
+
+
+def test_the_tolerance_is_far_below_any_real_daily_pnl():
+    """The guard must not swallow a genuinely low-volatility but real result."""
+    rng = np.random.default_rng(0)
+    pnl = rng.normal(0, 1e-6 * m.CAPITAL, 300)      # ~0.0001% daily vol, absurdly quiet
+    st = _result(list(pnl)).stats()
+    assert "sharpe" in st, "a real, if tiny, volatility must still be reported"
+
+
+def test_a_nan_pnl_series_reports_only_its_length():
+    """isfinite in the same guard: a NaN standard deviation is not a Sharpe."""
+    st = _result([np.nan] * 300).stats()
+    assert st == dict(n_days=300)
 
 
 # ----------------------------------------------------------------------------------

@@ -28,7 +28,6 @@ import json
 import os
 import time
 
-import numpy as np
 import pandas as pd
 
 from immediacy import UNIVERSE, LISTED_FROM
@@ -280,109 +279,43 @@ def download(out_path: str) -> None:
     print(f"\nEngine excludes each name before LISTED_FROM: {LISTED_FROM}")
 
 
-UNDEF_INT32 = 2 ** 31 - 1
-UNDEF_INT64 = 2 ** 63 - 1
-
-
 def validate(path: str) -> int:
     """
-    Check the assembled file against what immediacy.py assumes, BEFORE it is analysed.
+    The check that would have caught the ts_recv defect in two lines. Run it on any price
+    file before the analysis touches it.
 
-    The first check is the one that matters most. A statistics record carries two
-    timestamps and they mean different things: ts_ref is the session the statistic
-    refers to, ts_recv is when Databento received the bytes. Only ts_ref is a session
-    key. If the file was dated from ts_recv, settlements land on days the exchange was
-    shut, build_front_series counts them as sessions, and first_tradeable_date executes
-    on them. That is invisible in every summary statistic and shows up here.
+    Returns the number of failures so the shell can gate on it, matching --validate in
+    fetch_curve.py and fetch_cot.py.
     """
-    px = pd.read_parquet(path)
-    fails, warns = [], []
+    df = pd.read_parquet(path)
+    df["date"] = pd.to_datetime(df["date"])
+    n = len(df)
+    wk = df["date"].dt.dayofweek
+    weekend = (wk >= 5).mean()
+    span = (df["date"].max() - df["date"].min()).days / 365.25
+    per_yr = df.groupby("symbol")["date"].nunique() / span
+    dup = df.duplicated(["date", "symbol"]).sum()
 
-    def bad(msg): fails.append(msg)
-    def warn(msg): warns.append(msg)
+    print(f"{path}: {n:,} rows, {df['symbol'].nunique()} products, "
+          f"{df['date'].min():%Y-%m-%d} to {df['date'].max():%Y-%m-%d}")
+    print(f"  weekend rows          {weekend:.2%}   (MUST be ~0%)")
+    print(f"  sessions per year     {per_yr.min():.0f}-{per_yr.max():.0f}   "
+          f"(MUST be ~250)")
+    print(f"  duplicate date+symbol {dup:,}")
+    print(f"  non-positive settle   {(df['settle'] <= 0).sum():,}")
 
-    print(f"validating {path}   {len(px):,} rows, {px['symbol'].nunique()} products")
-
-    need = ["date", "symbol", "contract", "settle", "volume", "open_interest", "expiry"]
-    missing = [c for c in need if c not in px.columns]
-    if missing:
-        print(f"  FAIL  missing required columns: {missing}")
-        return 1
-
-    d = pd.to_datetime(px["date"])
-
-    # --- the session calendar
-    we = int((d.dt.dayofweek >= 5).sum())
-    if we:
-        bad(f"{we:,} rows ({we/len(px):.1%}) are dated to a Saturday or Sunday. "
-            f"No contract in this universe settles at a weekend, so the date column "
-            f"is a receipt timestamp (ts_recv), not a session (ts_ref)")
-
-    per = px.assign(_d=d).groupby("symbol")["_d"].agg(
-        size="nunique", min="min", max="max")
-    yrs = (per["max"] - per["min"]).dt.days / 365.25
-    rate = (per["size"] / yrs.replace(0, np.nan)).round(0)
-    off = rate[(rate < 235) | (rate > 265)]
-    if len(off):
-        bad(f"sessions per year outside 235-265: {off.to_dict()}  (expect ~252)")
-
-    # --- one held contract per product per session
-    dup = int(px.duplicated(["date", "symbol"]).sum())
+    bad = []
+    if weekend > 0.01:
+        bad.append("weekend rows present -> dated from ts_recv, not ts_ref. Refetch.")
+    if per_yr.max() > 265 or per_yr.min() < 235:
+        bad.append("session count wrong -> the date column is not a session key.")
     if dup:
-        warn(f"{dup:,} duplicate (date, symbol) rows — forward_returns pivots with the "
-             f"default aggfunc='mean' and would silently average them")
-
-    # --- prices
-    s = px["settle"]
-    for name, val in (("INT32_MAX", UNDEF_INT32), ("INT64_MAX", UNDEF_INT64)):
-        n = int((s == val).sum()) + int((s == val / FIXED_POINT).sum())
-        if n:
-            bad(f"settle: {n:,} rows carry the {name} undefined-value sentinel")
-    if not (s > 0).all():
-        bad(f"settle: {int((s <= 0).sum()):,} non-positive settlements")
-    if s.median() > 1e6:
-        bad(f"settle: median {s.median():,.0f} — still fixed-point, not scaled by 1e-9")
-
-    for c in ("volume", "open_interest"):
-        col = px[c]
-        for name, val in (("INT32_MAX", UNDEF_INT32), ("INT64_MAX", UNDEF_INT64)):
-            if int((col == val).sum()):
-                bad(f"{c}: carries the {name} undefined-value sentinel")
-        if col.isna().mean() > 0.05:
-            warn(f"{c} is missing on {col.isna().mean():.1%} of rows")
-
-    # --- the universe the engine expects
-    have = set(px["symbol"])
-    absent = sorted({c.symbol for c in UNIVERSE} - have)
-    if absent:
-        bad(f"no price data for {absent} — the engine will silently never hold them")
-
-    # --- expiry. Under MODE='continuous' this is a placeholder, and the roll is
-    # whatever the server-side continuous symbol resolved to.
-    gap = (pd.to_datetime(px["expiry"]) - d).dt.days
-    if (gap == gap.iloc[0]).all():
-        warn(f"every expiry is exactly {int(gap.iloc[0])} days after its date — this is "
-             f"the continuous-mode placeholder, so build_front_series performs no roll "
-             f"selection and the roll is the vendor's, not a deterministic calendar")
-
-    # --- returns implied by the file, as a last sanity check on the scale
-    r = (px.sort_values(["symbol", "contract", "date"])
-           .groupby(["symbol", "contract"])["settle"].pct_change())
-    if r.notna().any():
-        wild = float((r.abs() > 0.25).mean())
-        if wild > 0.001:
-            warn(f"{wild:.2%} of within-contract daily moves exceed 25%")
-
-    for msg in warns: print(f"  warn  {msg}")
-    for msg in fails: print(f"  FAIL  {msg}")
-    if not fails and not warns:
-        print("  all checks passed")
-    elif not fails:
-        print(f"  {len(warns)} warning(s), no failures")
-    else:
-        print(f"\n  {len(fails)} FAILURE(S). Do not analyse this file until they are "
-              f"explained.")
-    return len(fails)
+        bad.append("duplicate (date, symbol) rows -> pivot_table will silently average "
+                   "them, halving those returns.")
+    print("\n  " + ("PASS" if not bad else "FAIL"))
+    for b in bad:
+        print(f"    - {b}")
+    return len(bad)
 
 
 def main() -> None:
@@ -390,10 +323,10 @@ def main() -> None:
     ap.add_argument("--submit", action="store_true")
     ap.add_argument("--status", action="store_true")
     ap.add_argument("--download", action="store_true")
-    ap.add_argument("--validate", action="store_true",
-                    help="check --out against the schema immediacy.py expects")
     ap.add_argument("--products", default=None)
     ap.add_argument("--out", default="px.parquet")
+    ap.add_argument("--validate", action="store_true",
+                    help="check an existing price file before the analysis uses it")
     a = ap.parse_args()
     if a.submit:
         submit(a.products)

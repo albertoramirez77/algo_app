@@ -449,8 +449,15 @@ def trade_cost(n_contracts: int, c: Contract, price: float,
       spread     : half a tick, widening linearly with realised volatility
       impact     : square-root law scaled by participation
 
-    At $450k the impact term is ~4 orders of magnitude below the other two. That is the
-    capacity finding, and it is the opposite of the one most applicants report.
+    MEASURED in sample: commission 18.1%, spread 43.4%, impact 38.5%. Impact is 2.13x
+    commission, NOT negligible — an earlier version of this docstring claimed it was four
+    orders of magnitude below the others, which the code's own printed cost mix
+    contradicts. The capacity finding is that SPREAD dominates and spread does not improve
+    with scale; impact is second and only becomes binding far above this account size.
+
+    The impact figure is deliberately conservative: the square-root law is applied with a
+    coefficient of 1 at participation rates far below its calibration range, so it
+    overstates. It is kept rather than zeroed so the reported cost is an upper bound.
     """
     q = abs(n_contracts)
     if q == 0:
@@ -501,7 +508,9 @@ class Result:
     def stats(self, net: bool = True) -> dict:
         col = "pnl_net" if net else "pnl_gross"
         r = self.daily[col] / CAPITAL
-        if r.std() == 0 or len(r) < 60:
+        # Relative tolerance: a constant nonzero P&L has std ~1e-18, not exactly 0, and
+        # reported a Sharpe around 1e17.
+        if not np.isfinite(r.std()) or r.std() < 1e-12 or len(r) < 60:
             return dict(n_days=len(r))
         ann_ret = r.mean() * 252
         ann_vol = r.std() * np.sqrt(252)
