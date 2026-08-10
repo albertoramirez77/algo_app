@@ -228,15 +228,114 @@ def validate(out: pd.DataFrame, universe) -> None:
         print(broken.to_string())
 
 
+def validate_output(path: str) -> int:
+    """
+    Check an assembled cot.parquet against what immediacy.py assumes, BEFORE it is
+    analysed. Returns the number of failures so the shell can gate on it.
+    """
+    from immediacy import UNIVERSE, SHUTDOWN_START, SHUTDOWN_CLEARED
+
+    df = pd.read_parquet(path)
+    fails, warns = [], []
+
+    def bad(msg): fails.append(msg)
+    def warn(msg): warns.append(msg)
+
+    print(f"validating {path}   {len(df):,} rows, {df['symbol'].nunique()} products")
+
+    need = ["report_date", "symbol", "prod_long", "prod_short", "open_interest"]
+    missing = [c for c in need if c not in df.columns]
+    if missing:
+        print(f"  FAIL  missing required columns: {missing}")
+        return 1
+
+    rd = pd.to_datetime(df["report_date"])
+
+    if df[need].isna().any().any():
+        bad(f"NaN present in required columns: "
+            f"{df[need].isna().sum()[lambda s: s > 0].to_dict()}")
+
+    # --- the divisor behind Q. A zero here makes one name's Q infinite, which turns
+    # EVERY name's cross-sectional z that week into NaN.
+    n_zero = int((df["open_interest"] <= 0).sum())
+    if n_zero:
+        bad(f"{n_zero:,} rows with open_interest <= 0 — Q divides by the lagged value, "
+            f"so one zero silently zeroes the whole week's cross-section")
+
+    for c in ("prod_long", "prod_short"):
+        over = int((df[c] > df["open_interest"]).sum())
+        if over:
+            warn(f"{over:,} rows where {c} exceeds open interest")
+
+    # --- the measurement cadence
+    tue = float((rd.dt.dayofweek == 1).mean())
+    if tue < 0.90:
+        bad(f"only {tue:.1%} of report dates fall on a Tuesday (expect >90%)")
+
+    dup = int(df.duplicated(["report_date", "symbol"]).sum())
+    if dup:
+        bad(f"{dup:,} duplicate (report_date, symbol) rows")
+
+    # --- the sign that says the trader category is the right one
+    hp = float(((df["prod_short"] - df["prod_long"]) / df["open_interest"]).mean())
+    if hp <= 0:
+        bad(f"mean hedging pressure is {hp:+.4f} — must be positive (published ~+0.14). "
+            f"prod_long/prod_short are swapped, or this is the wrong category")
+
+    # --- the universe the engine expects
+    absent = sorted({c.symbol for c in UNIVERSE} - set(df["symbol"]))
+    if absent:
+        bad(f"no COT data for {absent} — wrong cftc_code in UNIVERSE")
+
+    # --- gaps. A code change mid-sample leaves a hole that no summary statistic shows.
+    for sym, g in df.groupby("symbol"):
+        w = pd.to_datetime(g["report_date"]).sort_values().reset_index(drop=True)
+        gaps = w.diff().dt.days.dropna()
+        long_gaps = gaps[gaps > 21]
+        if len(long_gaps):
+            worst = w[int(long_gaps.idxmax())]
+            warn(f"{sym}: {len(long_gaps)} gap(s) over 21 days, longest "
+                 f"{int(long_gaps.max())} days ending {worst:%Y-%m-%d}")
+
+    # --- the 2025 shutdown. Present as a fact, not a failure: the archives back-filled
+    # these at their original measurement dates and the engine holds them.
+    held = int(rd.between(SHUTDOWN_START, SHUTDOWN_CLEARED).sum())
+    if held:
+        print(f"  note  {held:,} rows measured inside the 2025 shutdown window "
+              f"({SHUTDOWN_START:%Y-%m-%d} to {SHUTDOWN_CLEARED:%Y-%m-%d}); the engine "
+              f"holds them until the backlog cleared")
+
+    # --- the dtype the join keys are compared on
+    if str(df["report_date"].dtype) != "datetime64[ns]":
+        warn(f"report_date dtype is {df['report_date'].dtype}, not datetime64[ns]; "
+             f"price dates are ns, so every merge relies on pandas upcasting")
+
+    for msg in warns: print(f"  warn  {msg}")
+    for msg in fails: print(f"  FAIL  {msg}")
+    if not fails and not warns:
+        print("  all checks passed")
+    elif not fails:
+        print(f"  {len(warns)} warning(s), no failures")
+    else:
+        print(f"\n  {len(fails)} FAILURE(S). Do not analyse this file until they are "
+              f"explained.")
+    return len(fails)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--raw-dir", default="./cot_raw")
     ap.add_argument("--out", default="cot.parquet")
     ap.add_argument("--coverage", action="store_true")
     ap.add_argument("--list-markets", action="store_true")
+    ap.add_argument("--validate", action="store_true",
+                    help="check --out against the schema immediacy.py expects")
     ap.add_argument("--search", default=None)
     ap.add_argument("--top", type=int, default=60)
     a = ap.parse_args()
+
+    if a.validate:
+        raise SystemExit(1 if validate_output(a.out) else 0)
 
     print(f"Reading {a.raw_dir}  (first pass on .xls is slow; results are cached)")
     df = read_all(a.raw_dir)
