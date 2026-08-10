@@ -221,7 +221,12 @@ def download(out_path: str) -> None:
             print(f"  {ct.symbol}: no statistics data, skipping")
             continue
         s = s.copy()
-        tscol = next((c for c in ("ts_recv", "ts_ref", "ts_event") if c in s.columns), None)
+        # ts_ref is the SESSION the statistic refers to. ts_recv is wall-clock receipt,
+        # and settlement records arrive during the Globex evening session, so ts_recv
+        # stamps a large share of them on the previous calendar day — in UTC, Sunday.
+        # Using it produced 16.9% Sunday rows, 305 "sessions" per year against 252, and
+        # 95.3% of COT trade dates executing on a Sunday. Only ts_ref is a session key.
+        tscol = next((c for c in ("ts_ref", "ts_recv", "ts_event") if c in s.columns), None)
         s["date"] = pd.to_datetime(s[tscol], utc=True).dt.tz_localize(None).dt.normalize()
         symcol = "symbol" if "symbol" in s.columns else "raw_symbol"
 

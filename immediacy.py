@@ -171,7 +171,10 @@ CLOCK = Clock()
 # measurement dates, so a naive backtest trades on reports that were not public at the
 # time. Any report measured inside this window is treated as unavailable until the
 # backlog actually cleared.
-SHUTDOWN_START = pd.Timestamp("2025-10-01")
+# The first WITHHELD report was the one measured 2025-09-30, which would have published
+# 2025-10-03. Anchoring the window at 2025-10-01 released that report 47 days before it
+# existed, and it is present in the archive at its original measurement date.
+SHUTDOWN_START = pd.Timestamp("2025-09-30")
 SHUTDOWN_CLEARED = pd.Timestamp("2025-12-29")
 
 

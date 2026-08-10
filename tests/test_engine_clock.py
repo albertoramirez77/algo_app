@@ -149,24 +149,29 @@ def test_a_held_report_first_trades_the_day_after_the_backlog_cleared():
     assert t == pd.Timestamp("2025-12-30")
 
 
-def test_the_shutdown_window_is_tested_on_the_measurement_date():
-    """Characterisation of the boundary as written: `d` is the measurement date."""
-    assert cot_release_date(pd.Timestamp("2025-10-01")) == m.SHUTDOWN_CLEARED
-    assert cot_release_date(pd.Timestamp("2025-09-30")) == pd.Timestamp("2025-10-03")
+def test_the_window_starts_at_the_first_report_that_was_actually_withheld():
+    """
+    SHUTDOWN_START is 2025-09-30, not 2025-10-01. The suspension applied to PUBLICATION
+    dates, and the report measured 2025-09-30 was scheduled to publish 2025-10-03 —
+    inside the suspension — so it was the first one withheld.
+
+    CFTC press release 9138-25: publication resumed 2025-11-19 with "data from the
+    first missed report, which would have published Oct. 3".
+    """
+    assert m.SHUTDOWN_START == pd.Timestamp("2025-09-30")
+    assert cot_release_date(pd.Timestamp("2025-09-30")) == m.SHUTDOWN_CLEARED
 
 
-@pytest.mark.xfail(reason=(
-    "FROZEN, reported not repaired. The suspension applies to PUBLICATION dates, but "
-    "SHUTDOWN_START is compared against the MEASUREMENT date, so the report measured "
-    "2025-09-30 falls outside the window. CFTC press release 9138-25: publication "
-    "resumed 2025-11-19 and 'This report will include data from the first missed "
-    "report, which would have published Oct. 3' -- i.e. the 2025-09-30 report was the "
-    "first one withheld. The code releases it 2025-10-03, 47 days before it existed. "
-    "One report week, inside the OOS window. Fixing it means testing the SCHEDULED "
-    "RELEASE against the window instead of the measurement date, which is a behaviour "
-    "change in a frozen block and the author's call."
-), strict=False)
-def test_the_2025_09_30_report_should_also_be_held():
+def test_the_last_report_published_on_schedule_is_left_alone():
+    """
+    The report measured 2025-09-23 went out on 2025-09-26, before the lapse. Moving the
+    window start one week further back would wrongly withhold it.
+    """
+    assert cot_release_date(pd.Timestamp("2025-09-23")) == pd.Timestamp("2025-09-26")
+
+
+def test_the_2025_09_30_report_is_never_released_before_it_was_public():
+    """The regression this window exists to prevent: a 47-day look-ahead on one week."""
     assert cot_release_date(pd.Timestamp("2025-09-30")) >= pd.Timestamp("2025-11-19")
 
 
