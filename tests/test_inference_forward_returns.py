@@ -179,20 +179,29 @@ def test_missing_observations_are_treated_as_zero_return_not_as_missing():
     assert fwd.loc[dates[0], "A"] == pytest.approx(1.01 ** H - 1, rel=1e-12)
 
 
-def test_duplicate_date_symbol_rows_are_averaged_silently():
+def test_duplicate_date_symbol_rows_raise_instead_of_being_averaged():
     """
-    DISCLOSURE TEST. pivot_table's default aggfunc is 'mean'. Two rows for the same
-    (date, symbol) are averaged rather than raising, so a duplicate that survived
-    upstream hygiene becomes a quiet halving of that day's return.
+    pivot_table's default aggfunc is 'mean', so two rows for the same (date, symbol)
+    used to be averaged rather than raising — a quiet halving of that day's return.
 
-    test_curve.load() de-duplicates explicitly; build_front_series does not, and this
-    is the line that would absorb the mistake.
+    test_curve.load() de-duplicates explicitly; build_front_series never emits a
+    duplicate, so this never fired. It is checked because the failure is invisible.
     """
     dates = pd.bdate_range("2015-01-05", periods=10)
     front = pd.DataFrame(dict(date=list(dates) + [dates[3]],
                               symbol="A",
                               ret=[0.0] * 10 + [0.20]))
-    front.loc[3, "ret"] = 0.0
-    fwd = forward_returns(front, H)["A"]
-    # day 3 carries mean(0.0, 0.20) = 0.10, not 0.20 and not an error
-    assert fwd.iloc[2] == pytest.approx(0.10, rel=1e-12)
+    with pytest.raises(ValueError, match="duplicate"):
+        forward_returns(front, H)
+
+
+def test_the_averaging_that_guard_prevents():
+    """
+    What pandas would have done, recorded so the guard's purpose is not lost: the two
+    rows collapse to their mean rather than to either value.
+    """
+    dates = pd.bdate_range("2015-01-05", periods=10)
+    front = pd.DataFrame(dict(date=list(dates) + [dates[3]], symbol="A",
+                              ret=[0.0] * 10 + [0.20]))
+    piv = front.pivot_table(index="date", columns="symbol", values="ret")
+    assert piv.loc[dates[3], "A"] == pytest.approx(0.10)

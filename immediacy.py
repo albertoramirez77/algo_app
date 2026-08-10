@@ -83,12 +83,15 @@ class Contract:
 # LISTED_FROM is when the contract we actually TRADE became available. Before that date the
 # strategy could not have held it, so the universe is time-varying and the engine must know.
 # These are estimates — run dbn_diagnose.py and replace them with measured values.
+# Measured with verify_listing.py, floored at any date CME confirmed publicly. Databento
+# carries definition and statistics records slightly BEFORE a contract starts trading, so
+# the measured month is a lower bound; where CME published a launch date, that wins.
 LISTED_FROM = {
-    "MCL": "2021-07-12",   # VERIFY
-    "MHG": "2022-01-01",   # VERIFY
-    "MGC": "2010-10-01",   # VERIFY
-    "SIL": "2022-01-01",   # VERIFY
-    "KE":  "2013-01-01",   # KCBT -> CME Globex migration. VERIFY
+    "MCL": "2021-07-12",   # CME launch date; measured data begins 2021-06
+    "MHG": "2022-05-02",   # CME press release 2022-04-05; measured data begins 2022-04
+    "MGC": "2010-09-01",   # measured
+    "SIL": "2013-06-01",   # measured
+    "KE":  "2013-12-01",   # measured
 }
 
 
@@ -163,13 +166,35 @@ CLOCK = Clock()
 # DATA LOADING
 # ----------------------------------------------------------------------------------
 
-def cot_release_date(report_tuesday: pd.Timestamp) -> pd.Timestamp:
+# The CFTC suspended publication from 1 October to 12 November 2025 and did not clear
+# the backlog until 29 December. The archives now carry those weeks at their original
+# measurement dates, so a naive backtest trades on reports that were not public at the
+# time. Any report measured inside this window is treated as unavailable until the
+# backlog actually cleared.
+SHUTDOWN_START = pd.Timestamp("2025-10-01")
+SHUTDOWN_CLEARED = pd.Timestamp("2025-12-29")
+
+
+def cot_release_date(report_date: pd.Timestamp) -> pd.Timestamp:
     """
-    CFTC Disaggregated COT: positions measured Tuesday close, published Friday 15:30 ET.
-    15:30 ET is after the settlement window of every contract in this universe, so the
-    first executable settlement is the following Monday.
+    Positions are measured at Tuesday's close and published Friday 15:30 ET. 15:30 ET is
+    after the settlement window of every contract in this universe, so the first
+    executable settlement is the following Monday.
+
+    Two corrections to a naive `+3 days`:
+
+      Non-Tuesday measurement. Roughly 1% of report dates fall on a Monday or Wednesday
+      because of holidays, but the CFTC still publishes on Friday. Anchoring to the
+      Friday of the report's week stops us trading a day early on those weeks.
+
+      The 2025 shutdown. See SHUTDOWN_START / SHUTDOWN_CLEARED above.
     """
-    return report_tuesday + pd.Timedelta(days=3)
+    d = pd.Timestamp(report_date)
+    friday = d + pd.Timedelta(days=(4 - d.dayofweek) % 7)
+    release = max(d + pd.Timedelta(days=3), friday)
+    if SHUTDOWN_START <= d <= SHUTDOWN_CLEARED:
+        release = max(release, SHUTDOWN_CLEARED)
+    return release
 
 
 def first_tradeable_date(report_tuesday: pd.Timestamp,
@@ -255,12 +280,19 @@ def build_front_series(prices: pd.DataFrame) -> pd.DataFrame:
 
     # Return within a contract only. On a roll day the return is NaN and is treated as
     # zero P&L on the price leg; the roll's cost is charged separately in the cost model.
-    front["prev_settle"] = front.groupby(["symbol", "contract"])["settle"].shift(1)
+    # Group by contiguous BLOCK, not by contract name. With an open-interest-ranked
+    # continuous series the front month can flip A -> B -> A when open interest
+    # oscillates near the roll. Grouping on the name alone stitches the two separate
+    # stints in A together across the gap in between, manufacturing a return that
+    # never existed. Blocks make each stint its own series.
+    front["_block"] = front.groupby("symbol")["contract"].transform(
+        lambda s: (s != s.shift(1)).cumsum())
+    front["prev_settle"] = front.groupby(["symbol", "_block"])["settle"].shift(1)
     front["ret"] = front["settle"] / front["prev_settle"] - 1.0
     front["is_roll"] = front.groupby("symbol")["contract"].transform(
         lambda s: s != s.shift(1)
     ).fillna(False)
-    return front
+    return front.drop(columns=["_block"])
 
 
 # ----------------------------------------------------------------------------------
@@ -277,6 +309,23 @@ def compute_signals(cot: pd.DataFrame, weekly_ret: pd.DataFrame,
     Returns one row per (report_date, symbol) with the final forecast F.
     """
     df = cot.sort_values(["symbol", "report_date"]).copy()
+
+    # Q divides by the PREVIOUS week's open interest. A single non-positive value there
+    # makes that name's Q infinite, and an infinite value in the cross-section turns the
+    # week's mean and standard deviation non-finite — so EVERY name's z becomes NaN,
+    # not just the offending one. `s = z.fillna(0) * e * g` then zeroes the whole book
+    # for that week and the 3-week rolling mean spreads the hole over three more.
+    # Nothing downstream reports it. Raise instead: this is always a data defect, and
+    # fetch_cot.build already filters open_interest > 0 upstream.
+    bad_oi = df[~(df["open_interest"] > 0)]
+    if len(bad_oi):
+        raise ValueError(
+            f"non-positive open interest in {len(bad_oi)} COT rows, first "
+            f"{bad_oi['symbol'].iloc[0]} {bad_oi['report_date'].iloc[0]:%Y-%m-%d}. "
+            f"Q divides by this; one bad cell silently zeroes the whole week's "
+            f"cross-section. Run: python fetch_cot.py --validate --out <file>"
+        )
+
     df["net_long"] = df["prod_long"] - df["prod_short"]
     df["oi_lag"] = df.groupby("symbol")["open_interest"].shift(1)
 
@@ -301,8 +350,15 @@ def compute_signals(cot: pd.DataFrame, weekly_ret: pd.DataFrame,
     df["g"] = np.where(df["cap_loss_4w"] >= thresh, 2.0, 1.0)
 
     # --- sector demeaning: the crush is one hedging event, not three ------------
+    # Only where the sector has enough members for a deviation to survive the
+    # subtraction. With ONE member the sector mean is that member, so Q_tilde becomes
+    # exactly zero and the name can never take a position. Before the micros listed,
+    # energy held only QG and metals only MGC — both sleeves were silently deleted for
+    # most of the sample, which is why realised volatility ran at half of target.
     df["sector"] = df["symbol"].map(lambda s: BY_SYMBOL[s].sector)
-    df["Q_tilde"] = df["Q"] - df.groupby(["report_date", "sector"])["Q"].transform("mean")
+    _sec = df.groupby(["report_date", "sector"])["Q"]
+    _n, _mu = _sec.transform("size"), _sec.transform("mean")
+    df["Q_tilde"] = np.where(_n >= 3, df["Q"] - _mu, df["Q"])
 
     # --- cross-sectional z, winsorised ------------------------------------------
     grp = df.groupby("report_date")["Q_tilde"]
@@ -396,6 +452,20 @@ def trade_cost(n_contracts: int, c: Contract, price: float,
     q = abs(n_contracts)
     if q == 0:
         return dict(commission=0.0, spread=0.0, impact=0.0, total=0.0)
+
+    # A non-finite price, daily volatility or ADV produces a NaN total, which becomes a
+    # NaN pnl_net for the day and a NaN Sharpe for the run. `participation` is the live
+    # one: `0.0 if adv <= 0 else q / adv` treats NaN as "not <= 0" and divides by it.
+    # No trade is currently taken before the 60-day volatility estimate exists, by which
+    # time the 20-day median volume does too, so this never fires today. Nothing
+    # enforces that ordering, which is why it is checked rather than assumed.
+    for name, val in (("price", price), ("sigma_daily", sigma_daily),
+                      ("adv_contracts", adv_contracts)):
+        if not np.isfinite(val):
+            raise ValueError(
+                f"trade_cost({c.symbol}): {name} is {val!r}. A non-finite cost silently "
+                f"becomes NaN P&L for the whole day rather than a visible failure."
+            )
 
     commission = q * c.commission_side
 

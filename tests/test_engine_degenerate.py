@@ -195,20 +195,30 @@ def test_zero_average_volume_charges_no_impact_rather_than_dividing_by_zero():
     assert np.isfinite(c["total"])
 
 
-def test_a_nan_average_volume_produces_a_nan_cost():
+@pytest.mark.parametrize("field,args", [
+    ("adv_contracts", (2, 400.0, 0.01, 0.01, np.nan)),
+    ("sigma_daily", (2, 400.0, np.nan, 0.01, 1000.0)),
+    ("price", (2, np.nan, 0.01, 0.01, 1000.0)),
+])
+def test_a_non_finite_cost_input_raises_instead_of_returning_nan(field, args):
     """
-    UNGUARDED PATH, pinned. `participation = 0.0 if adv <= 0 else q / adv` treats NaN
-    as "not <= 0" and divides by it, so the day's total cost and therefore pnl_net
-    become NaN.
+    Before the guard, `participation = 0.0 if adv <= 0 else q / adv` treated NaN as
+    "not <= 0" and divided by it, so the day's total cost and therefore pnl_net became
+    NaN — a silent hole in the P&L rather than a visible failure.
 
-    It does not fire today: no trade is taken until the 60-day volatility estimate
-    exists, by which time the 20-day median volume does too. The first trade in the
-    real run is 517 sessions into the sample. Nothing enforces that ordering, though,
-    and this is the line that would absorb a reordering.
+    It never fired: no trade is taken until the 60-day volatility estimate exists, by
+    which time the 20-day median volume does too, and the first trade in the real run
+    is 517 sessions into the sample. Nothing enforced that ordering, which is why it
+    is now checked.
     """
-    c = m.trade_cost(2, ZC, 400.0, 0.01, 0.01, np.nan)
-    assert np.isnan(c["impact"])
-    assert np.isnan(c["total"])
+    n, price, sd, ref, adv = args
+    with pytest.raises(ValueError, match=field):
+        m.trade_cost(n, ZC, price, sd, ref, adv)
+
+
+def test_a_zero_size_trade_is_free_even_with_unusable_inputs():
+    """The early return must come before the guard: no trade, nothing to validate."""
+    assert m.trade_cost(0, ZC, np.nan, np.nan, np.nan, np.nan)["total"] == 0.0
 
 
 def test_the_impact_term_dominates_the_other_two_not_the_reverse():
@@ -277,36 +287,53 @@ def test_a_two_instrument_universe_makes_exactly_one_name_eligible():
     assert (per_week == 1.0).all()
 
 
-def test_a_zero_open_interest_observation_nans_the_whole_weeks_cross_section():
+@pytest.mark.parametrize("value", [0.0, -1.0, np.nan])
+def test_a_non_positive_open_interest_raises_instead_of_wiping_the_cross_section(value):
     """
-    THE FINDING. Q divides by the previous week's open interest. One zero makes that
-    name's Q infinite; the cross-sectional mean and standard deviation then become
-    non-finite, so EVERY name's z that week is NaN, not just the affected one.
-
-    `s = z.fillna(0) * e * g` turns that into a silent zero for the entire book. With
-    hold_weeks=3 the rolling mean keeps a third of the signal missing for three
-    consecutive weeks and nothing prints a warning.
-
-    cot.parquet contains no zero open interest today — fetch_cot.build filters
-    `open_interest > 0` — so this is latent, not live. It is the same defect class as
-    the one-member sector: a single bad cell deletes a sleeve in silence.
+    Q divides by the previous week's open interest, so a non-positive value there is
+    always a data defect. compute_signals now says so rather than absorbing it.
     """
     symbols = ["ZC", "ZW", "ZS", "ZM", "ZL"]
     cot, wk = _signal_frame(symbols)
     bad_week = sorted(cot["report_date"].unique())[60]
     cot.loc[(cot["report_date"] == bad_week) & (cot["symbol"] == "ZC"),
+            "open_interest"] = value
+
+    with pytest.raises(ValueError, match="non-positive open interest"):
+        m.compute_signals(cot, wk)
+
+
+def test_why_that_guard_exists_one_infinity_nans_the_whole_cross_section():
+    """
+    The mechanism the guard prevents, demonstrated on the arithmetic directly so the
+    reason survives even though compute_signals no longer reaches it.
+
+    One infinite Q makes the week's mean and standard deviation non-finite, so EVERY
+    name's z is NaN — not just the offending one. `s = z.fillna(0) * e * g` then zeroes
+    the entire book for that week, and with hold_weeks=3 the rolling mean spreads the
+    hole over three more. Nothing printed a warning.
+
+    Same defect class as the one-member sector already documented in compute_signals:
+    a single bad cell deletes a sleeve in silence.
+    """
+    q = pd.Series([np.inf, -0.004, 0.016, 0.025, 0.074])
+    z = (q - q.mean()) / q.std()
+    assert z.isna().all(), "one infinity must poison every name, or the guard is moot"
+    s = z.fillna(0.0) * 1.0 * 1.0
+    assert (s == 0.0).all()
+
+
+def test_the_guard_names_the_offending_symbol_and_week():
+    """An informative error, not a bare exception: it has to be actionable."""
+    cot, wk = _signal_frame(["ZC", "ZW", "ZS"])
+    bad_week = sorted(cot["report_date"].unique())[40]
+    cot.loc[(cot["report_date"] == bad_week) & (cot["symbol"] == "ZW"),
             "open_interest"] = 0.0
-
-    sig = m.compute_signals(cot, wk)
-    hit = sorted(sig["report_date"].unique())[61]          # oi_lag is the zero
-    week = sig[sig["report_date"] == hit]
-    assert np.isinf(week["Q"]).sum() == 1                  # one name divides by zero
-    assert week["z"].isna().all()                          # every name loses its z
-    assert (week["s"].abs() < 1e-12).all() if "s" in week else True
-
-    # and the hole is invisible downstream: S is a 3-week mean, so the forecast that
-    # week is carried by the two neighbouring weeks and never reads as missing.
-    assert sig.loc[sig["report_date"] == hit, "F"].notna().all()
+    with pytest.raises(ValueError) as e:
+        m.compute_signals(cot, wk)
+    assert "ZW" in str(e.value)
+    assert pd.Timestamp(bad_week).strftime("%Y-%m-%d") in str(e.value)
+    assert "fetch_cot.py --validate" in str(e.value)
 
 
 def test_a_week_with_no_volatility_estimate_takes_no_trades():
