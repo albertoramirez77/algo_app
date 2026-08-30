@@ -1,0 +1,158 @@
+{
+  "MCL": {
+    "job_id": "GLBX-20260808-BHKCXU6XDM",
+    "root": "CL",
+    "state": "done",
+    "submitted": "2026-08-07 22:28:19.562011"
+  },
+  "QG": {
+    "job_id": "GLBX-20260808-G9RDM86Y43",
+    "root": "NG",
+    "state": "done",
+    "submitted": "2026-08-07 22:28:24.336371"
+  },
+  "MGC": {
+    "job_id": "GLBX-20260808-69XMD85S5E",
+    "root": "GC",
+    "state": "done",
+    "submitted": "2026-08-07 22:28:33.568565"
+  },
+  "SIL": {
+    "job_id": "GLBX-20260808-4DXBBW6LWV",
+    "root": "SI",
+    "state": "done",
+    "submitted": "2026-08-07 22:28:37.736656"
+  },
+  "MHG": {
+    "job_id": "GLBX-20260808-JRBDQEQJDJ",
+    "root": "HG",
+    "state": "done",
+    "submitted": "2026-08-07 22:28:43.523641"
+  },
+  "ZC": {
+    "job_id": "GLBX-20260808-5GW3YWSDUQ",
+    "root": "ZC",
+    "state": "done",
+    "submitted": "2026-08-07 22:28:45.674103"
+  },
+  "KE": {
+    "job_id": "GLBX-20260808-7HSPKE4FLV",
+    "root": "KE",
+    "state": "done",
+    "submitted": "2026-08-07 22:30:00.775565"
+  },
+  "ZS": {
+    "job_id": "GLBX-20260808-KN887YY6GS",
+    "root": "ZS",
+    "state": "done",
+    "submitted": "2026-08-07 22:30:04.075468"
+  },
+  "ZM": {
+    "job_id": "GLBX-20260808-LBHG6JV74R",
+    "root": "ZM",
+    "state": "done",
+    "submitted": "2026-08-07 22:30:10.460317"
+  },
+  "ZL": {
+    "job_id": "GLBX-20260808-PE97DGHDTG",
+    "root": "ZL",
+    "state": "done",
+    "submitted": "2026-08-07 22:30:37.494824"
+  },
+  "LE": {
+    "job_id": "GLBX-20260808-VNTS67B86Y",
+    "root": "LE",
+    "state": "done",
+    "submitted": "2026-08-07 22:30:40.814844"
+  },
+  "HE": {
+    "job_id": "GLBX-20260808-HVY4NLD3WN",
+    "root": "HE",
+    "state": "done",
+    "submitted": "2026-08-07 22:31:02.074257"
+  },
+  "MCL_def": {
+    "job_id": "GLBX-20260808-TLHVKBJ7PQ",
+    "root": "CL",
+    "state": "done",
+    "kind": "definition"
+  },
+  "QG_def": {
+    "job_id": "GLBX-20260808-9GE7JWDWF6",
+    "root": "NG",
+    "state": "done",
+    "kind": "definition"
+  },
+  "MGC_def": {
+    "job_id": "GLBX-20260808-SXJ7RKX3KA",
+    "root": "GC",
+    "state": "done",
+    "kind": "definition"
+  },
+  "SIL_def": {
+    "job_id": "GLBX-20260808-LHSD6D8XVV",
+    "root": "SI",
+    "state": "done",
+    "kind": "definition"
+  },
+  "MHG_def": {
+    "job_id": "GLBX-20260808-RNA87UMTY3",
+    "root": "HG",
+    "state": "done",
+    "kind": "definition"
+  },
+  "ZC_def": {
+    "job_id": "GLBX-20260808-SR3R4LR9KC",
+    "root": "ZC",
+    "state": "done",
+    "kind": "definition"
+  },
+  "ZW_def": {
+    "job_id": "GLBX-20260808-SHQ68YRVK8",
+    "root": "ZW",
+    "state": "done",
+    "kind": "definition"
+  },
+  "KE_def": {
+    "job_id": "GLBX-20260808-5KPYB4AVEC",
+    "root": "KE",
+    "state": "done",
+    "kind": "definition"
+  },
+  "ZS_def": {
+    "job_id": "GLBX-20260808-XAL8AUVVD9",
+    "root": "ZS",
+    "state": "done",
+    "kind": "definition"
+  },
+  "ZM_def": {
+    "job_id": "GLBX-20260808-YVBGVUUFCU",
+    "root": "ZM",
+    "state": "done",
+    "kind": "definition"
+  },
+  "ZL_def": {
+    "job_id": "GLBX-20260808-8FTBCECCUU",
+    "root": "ZL",
+    "state": "done",
+    "kind": "definition"
+  },
+  "LE_def": {
+    "job_id": "GLBX-20260808-AHBLMXUDE8",
+    "root": "LE",
+    "state": "done",
+    "kind": "definition"
+  },
+  "HE_def": {
+    "job_id": "GLBX-20260808-QH9RJS8J4T",
+    "root": "HE",
+    "state": "done",
+    "kind": "definition"
+  },
+  "ZW": {
+    "job_id": "GLBX-20260808-4WTQ6PVNP7",
+    "root": "ZW",
+    "state": "done",
+    "submitted": "2026-08-07 23:06:58.733097"
+  }
+}

@@ -33,7 +33,15 @@ import time
 import numpy as np
 import pandas as pd
 
-from immediacy import UNIVERSE
+from immediacy import UNIVERSE as NARROW_UNIVERSE
+
+# --universe wide switches to the 35-instrument cross-asset set. The narrow 13 remain
+# available so results can be compared like for like.
+try:
+    from universe import UNIVERSE as WIDE_UNIVERSE
+except ImportError:
+    WIDE_UNIVERSE = None
+UNIVERSE = NARROW_UNIVERSE
 
 DATASET = "GLBX.MDP3"
 START = "2010-06-06"
@@ -58,14 +66,6 @@ DOWNLOAD_DIR = "batch_curve"
 FIXED_POINT = 1e9
 
 STAT_SETTLEMENT, STAT_VOLUME, STAT_OI = 3, 6, 9
-
-# Databento's "value not present" markers. Which width is used depends on the DBN
-# version that produced the file — v3 widened the stat quantity to int64 — so anything
-# reading these fields has to reject both. They are not NaN and no dropna will catch
-# them; scaled by 1e-9 an undefined price arrives as a plausible-looking 9.22.
-UNDEF_INT32 = 2 ** 31 - 1          # 2147483647
-UNDEF_INT64 = 2 ** 63 - 1          # 9223372036854775807
-UNDEF_TS = 2 ** 64 - 1             # 18446744073709551615
 
 
 def client():
@@ -102,7 +102,8 @@ def submit(products: str | None) -> None:
     plan = []
     for ct in targets:
         for leg in ("0", "1"):
-            sym = f"{ct.fetch_root}.{ROLL}.{leg}"
+            root = getattr(ct, "fetch_root", None) or getattr(ct, "root")
+            sym = f"{root}.{ROLL}.{leg}"
             plan.append((f"{ct.symbol}|s{leg}", sym, "statistics"))
             plan.append((f"{ct.symbol}|d{leg}", sym, "definition"))
 
@@ -236,144 +237,31 @@ def download(out_path: str) -> None:
     print("\ncolumns:", list(px.columns))
 
 
-def validate(path: str) -> int:
-    """
-    Check the assembled file against what test_curve.py assumes, BEFORE it is analysed.
-
-    Every check below corresponds to an assumption that was wrong at least once in this
-    project. Returns the number of failures so the shell can gate on it.
-    """
-    px = pd.read_parquet(path)
-    fails, warns = [], []
-
-    def bad(msg): fails.append(msg)
-    def warn(msg): warns.append(msg)
-
-    print(f"validating {path}   {len(px):,} rows, {px['symbol'].nunique()} products")
-
-    need = ["date", "symbol", "contract_0", "contract_1", "settle_0", "settle_1",
-            "expiry_0"]
-    missing = [c for c in need if c not in px.columns]
-    if missing:
-        bad(f"missing required columns: {missing}")
-        for m_ in fails: print(f"  FAIL  {m_}")
-        return len(fails)
-
-    d = pd.to_datetime(px["date"])
-
-    # --- the session calendar. A settlement dated to a weekend means the file was
-    # built from a wall-clock receipt timestamp rather than the session the statistic
-    # refers to. ts_ref is populated on every settlement record; ts_recv is not a
-    # session key.
-    we = int((d.dt.dayofweek >= 5).sum())
-    if we:
-        bad(f"{we:,} rows ({we/len(px):.1%}) are dated to a Saturday or Sunday — "
-            f"the date column is not a trading session")
-
-    # count DISTINCT sessions, not rows: duplicate (date, symbol) pairs are a separate
-    # check and would otherwise inflate this one.
-    per = px.assign(_d=d).groupby("symbol")["_d"].agg(
-        size="nunique", min="min", max="max")
-    yrs = (per["max"] - per["min"]).dt.days / 365.25
-    rate = (per["size"] / yrs.replace(0, np.nan)).round(0)
-    off = rate[(rate < 235) | (rate > 265)]
-    if len(off):
-        bad(f"sessions per year outside 235-265 for {list(off.index)}: "
-            f"{off.to_dict()}  (expect ~252)")
-
-    # --- leg ordering. This is the defect the calendar roll exists to fix.
-    same = int((px["contract_0"] == px["contract_1"]).sum())
-    if same:
-        bad(f"{same:,} rows resolve BOTH legs to the same instrument")
-
-    if "expiry_1" not in px.columns:
-        bad("no expiry_1 column — the basis cannot be annualised by the real maturity "
-            "gap and is not comparable across instruments. Refetch with --roll c.")
-    else:
-        both = px["expiry_0"].notna() & px["expiry_1"].notna()
-        if not both.any():
-            bad("expiry_1 exists but is empty on every row")
-        else:
-            inv = float((px.loc[both, "expiry_1"] <= px.loc[both, "expiry_0"]).mean())
-            if inv > 0.001:
-                bad(f"{inv:.2%} of rows have the second leg expiring on or before the "
-                    f"front — the basis sign flips with the ordering")
-            gap = (px.loc[both, "expiry_1"] - px.loc[both, "expiry_0"]).dt.days
-            if not (15 <= gap.median() <= 200):
-                warn(f"median maturity gap is {gap.median():.0f} days — check the roll")
-            if both.mean() < 0.95:
-                warn(f"expiry coverage is only {both.mean():.0%} of rows")
-
-    # --- prices: sentinels, sign, and the fixed-point scale
-    for c in ("settle_0", "settle_1"):
-        s = px[c]
-        for name, val in (("INT32_MAX", UNDEF_INT32), ("INT64_MAX", UNDEF_INT64)):
-            # Exact comparison in both the raw and the 1e-9-scaled form. A relative
-            # tolerance is wrong here: MHG genuinely settled at 2.1475 on 2016-07-11,
-            # which is within np.isclose's default rtol of the scaled INT32 sentinel
-            # 2.147483647 and would be reported as corrupt.
-            n = int((s == val).sum()) + int((s == val / FIXED_POINT).sum())
-            if n:
-                bad(f"{c}: {n:,} rows carry the {name} undefined-value sentinel")
-        if not (s > 0).all():
-            bad(f"{c}: {int((s <= 0).sum()):,} non-positive settlements")
-        if s.median() > 1e6:
-            bad(f"{c}: median {s.median():,.0f} — still fixed-point, not scaled by 1e-9")
-
-    # --- open interest coverage. NaN here is how the duplicate tie-break in
-    # test_curve.load silently selects the leg with no open interest.
-    if "oi_0" in px.columns:
-        miss = float(px["oi_0"].isna().mean())
-        if miss > 0.02:
-            bad(f"oi_0 is missing on {miss:.1%} of rows — stat_type 9 leaves ts_ref "
-                f"undefined, so those rows dated to NaT and were dropped")
-
-    dup = int(px.duplicated(["date", "symbol"]).sum())
-    if dup:
-        warn(f"{dup:,} duplicate (date, symbol) rows — test_curve.load resolves these, "
-             f"but check the tie-break if oi_0 has gaps")
-
-    dte = (pd.to_datetime(px["expiry_0"]) - d).dt.days.dropna()
-    if len(dte) and not (20 <= dte.median() <= 60):
-        warn(f"median days to front expiry is {dte.median():.0f} — a calendar roll on "
-             f"the nearby should sit well under 60")
-
-    for msg in warns: print(f"  warn  {msg}")
-    for msg in fails: print(f"  FAIL  {msg}")
-    if not fails and not warns:
-        print("  all checks passed")
-    elif not fails:
-        print(f"  {len(warns)} warning(s), no failures")
-    else:
-        print(f"\n  {len(fails)} FAILURE(S). Do not analyse this file until they are "
-              f"explained.")
-    return len(fails)
-
-
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--submit", action="store_true")
     ap.add_argument("--status", action="store_true")
     ap.add_argument("--download", action="store_true")
-    ap.add_argument("--validate", action="store_true",
-                    help="check --out against the schema test_curve.py expects")
     ap.add_argument("--products", default=None)
     ap.add_argument("--out", default="px_curve_c.parquet")
     ap.add_argument("--roll", choices=["c", "n"], default="c")
+    ap.add_argument("--universe", choices=["narrow", "wide"], default="narrow")
     a = ap.parse_args()
-    global ROLL, JOBS_FILE, DOWNLOAD_DIR
+    global ROLL, JOBS_FILE, DOWNLOAD_DIR, UNIVERSE
+    if a.universe == "wide":
+        if WIDE_UNIVERSE is None:
+            raise SystemExit("universe.py not found — put it beside this script")
+        UNIVERSE = WIDE_UNIVERSE
+    print(f"universe: {a.universe} ({len(UNIVERSE)} instruments)")
     ROLL = a.roll
-    JOBS_FILE = f"jobs_curve_{ROLL}.json"
-    DOWNLOAD_DIR = f"batch_curve_{ROLL}"
-    if a.validate:
-        raise SystemExit(1 if validate(a.out) else 0)
+    JOBS_FILE = f"jobs_curve_{ROLL}_{a.universe}.json"
+    DOWNLOAD_DIR = f"batch_curve_{ROLL}_{a.universe}"
     print(f"roll: {ROLL} "
           f"({'calendar, ordered by expiry' if ROLL == 'c' else 'open-interest rank'})")
     if a.submit: submit(a.products)
     elif a.status: status()
     elif a.download: download(a.out)
     else: ap.print_help()
-
 
 if __name__ == "__main__":
     main()

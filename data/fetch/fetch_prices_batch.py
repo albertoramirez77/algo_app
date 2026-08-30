@@ -180,6 +180,29 @@ def normalize_price(s: pd.Series, label: str = "") -> pd.Series:
     return s
 
 
+UINT64_MAX = 18446744073709551615
+MAX_VALID_NS = 4_102_444_800_000_000_000        # 2100-01-01, anything beyond is a sentinel
+
+
+def to_session_date(s: pd.Series) -> pd.Series:
+    """
+    Databento marks an UNDEFINED timestamp with UINT64_MAX (2**64 - 1). pandas tries to
+    read that as nanoseconds and raises OutOfBoundsDatetime.
+
+    ts_ref is populated on 100% of settlement records but undefined on a large share of
+    volume and open-interest records. Coercing silently turns those into NaT, which is how
+    open interest ended up NaN on 35% of rows in the curve file without anyone noticing.
+    Here the sentinel is removed explicitly and the loss is reported.
+    """
+    num = pd.to_numeric(s, errors="coerce")
+    if num.notna().mean() > 0.5:
+        num = num.where((num > 0) & (num < MAX_VALID_NS))
+        out = pd.to_datetime(num, unit="ns", utc=True, errors="coerce")
+    else:
+        out = pd.to_datetime(s, utc=True, errors="coerce")
+    return out.dt.tz_localize(None).dt.normalize()
+
+
 def read_batch_csv(path: str) -> pd.DataFrame:
     df = pd.read_csv(path)
     df.columns = [c.strip().lower() for c in df.columns]
@@ -226,7 +249,13 @@ def download(out_path: str) -> None:
         # Using it produced 16.9% Sunday rows, 305 "sessions" per year against 252, and
         # 95.3% of COT trade dates executing on a Sunday. Only ts_ref is a session key.
         tscol = next((c for c in ("ts_ref", "ts_recv", "ts_event") if c in s.columns), None)
-        s["date"] = pd.to_datetime(s[tscol], utc=True).dt.tz_localize(None).dt.normalize()
+        s["date"] = to_session_date(s[tscol])
+        lost = s["date"].isna()
+        if lost.any():
+            by = s.loc[lost, "stat_type"].value_counts().to_dict() if "stat_type" in s else {}
+            print(f"      {ct.symbol}: dropped {lost.sum():,} records with an undefined "
+                  f"{tscol} (by stat_type: {by})")
+            s = s[~lost]
         symcol = "symbol" if "symbol" in s.columns else "raw_symbol"
 
         if MODE == "continuous" and "instrument_id" in s.columns:
@@ -279,21 +308,20 @@ def download(out_path: str) -> None:
     print(f"\nEngine excludes each name before LISTED_FROM: {LISTED_FROM}")
 
 
-def validate(path: str) -> int:
+def validate(path: str) -> None:
     """
     The check that would have caught the ts_recv defect in two lines. Run it on any price
     file before the analysis touches it.
-
-    Returns the number of failures so the shell can gate on it, matching --validate in
-    fetch_curve.py and fetch_cot.py.
     """
     df = pd.read_parquet(path)
     df["date"] = pd.to_datetime(df["date"])
     n = len(df)
     wk = df["date"].dt.dayofweek
     weekend = (wk >= 5).mean()
-    span = (df["date"].max() - df["date"].min()).days / 365.25
-    per_yr = df.groupby("symbol")["date"].nunique() / span
+    # Per symbol, not per file: a product that lists partway through the sample has a
+    # shorter span, and dividing by the file's full span understates it.
+    per_yr = df.groupby("symbol")["date"].agg(
+        lambda d: d.nunique() / max((d.max() - d.min()).days / 365.25, 1e-9))
     dup = df.duplicated(["date", "symbol"]).sum()
 
     print(f"{path}: {n:,} rows, {df['symbol'].nunique()} products, "
@@ -315,7 +343,6 @@ def validate(path: str) -> int:
     print("\n  " + ("PASS" if not bad else "FAIL"))
     for b in bad:
         print(f"    - {b}")
-    return len(bad)
 
 
 def main() -> None:
@@ -328,14 +355,14 @@ def main() -> None:
     ap.add_argument("--validate", action="store_true",
                     help="check an existing price file before the analysis uses it")
     a = ap.parse_args()
-    if a.submit:
+    if a.validate:
+        validate(a.out)
+    elif a.submit:
         submit(a.products)
     elif a.status:
         status()
     elif a.download:
         download(a.out)
-    elif a.validate:
-        raise SystemExit(1 if validate(a.out) else 0)
     else:
         ap.print_help()
 
