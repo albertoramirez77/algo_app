@@ -40,6 +40,7 @@ env/
 baseline_run.txt
 baseline_smoke.txt
 repair_audit.csv
+final_bundle/
 
 # Editor and OS
 .DS_Store
