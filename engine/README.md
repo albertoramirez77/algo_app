@@ -6,7 +6,7 @@ This folder contains the production implementation. Everything a replicator need
 
 | File | Purpose |
 |------|---------|
-| `universe.py` | 35-instrument universe across 6 asset classes. Every contract spec: symbol, multiplier, tick, commission, CFTC code, price scale correction. The 13-commodity tradeable subset is flagged `tradeable_450k=True`. |
+| `universe.py` | 35-instrument universe across 6 asset classes. Every contract spec: symbol, multiplier, tick, commission, CFTC code, price scale correction. `tradeable_450k` documents which contracts size sensibly at $450k; it is documentation, not a filter. The traded universe is 16, set by the ex-ante cost rule in `final_numbers.py`. |
 | `immediacy.py` | Main backtest engine. Enforces the four non-negotiable rules: point-in-time timestamps, integer contracts, no back-adjusted prices, sealed OOS window. Run `--smoke` for a synthetic-data sanity check; `--run --oos-unlock` for the real backtest (unlock once). |
 | `flowbm.py` | Production signal. Units-corrected basis-momentum: accumulates within-contract monthly spread returns scaled by 365.25/gap, never crossing a roll date. Sharpe 0.968 vs 0.760 for the raw signal. Run standalone to see the full validation suite. |
 | `final_numbers.py` | Every pitch number in one script. Run this last; it asserts against a frozen spec and prints a labeled table. Pipe to `docs/FINAL_NUMBERS.txt`. |

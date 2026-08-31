@@ -65,6 +65,13 @@ DOWNLOAD_DIR = "batch_curve"
 # can be annualised by the real maturity gap, which is what the literature does.
 FIXED_POINT = 1e9
 
+# Sentinels for an undefined stat quantity. The value is version-dependent: DBN v3
+# widened it to int64, but the batch CSVs on disk still carry the int32 value, so a
+# validator has to reject both. Written down rather than inferred; see
+# tests/test_data_semantics.py.
+UNDEF_INT32 = 2 ** 31 - 1
+UNDEF_INT64 = 2 ** 63 - 1
+
 STAT_SETTLEMENT, STAT_VOLUME, STAT_OI = 3, 6, 9
 
 
