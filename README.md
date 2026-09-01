@@ -10,7 +10,7 @@ Alberto Ramirez-Aguiar · aramirezaguiar@ufl.edu
 
 ## The idea in four sentences
 
-A barrel of oil for next month and a barrel for three months out are the same barrel; the gap between their prices measures how physically tight the commodity is right now. Inventories move slowly — you cannot refill a silo out of season — so a gap that has been tightening tends to keep tightening. Each month the strategy ranks sixteen commodities on the twelve-month change in that gap, buys the tightening curves and sells the loosening ones, sized so each contributes equal risk. It takes no view on the direction of commodity prices: realised beta to the commodity complex is −0.06 and R² is 0.01.
+A barrel of oil for next month and a barrel for three months out are the same barrel, and the gap between their prices measures how physically tight the commodity is right now. Inventories move slowly, you cannot refill a silo out of season, so a gap that has been tightening tends to keep tightening. Each month the strategy ranks sixteen commodities on the twelve-month change in that gap, buys the tightening curves and sells the loosening ones, sized so each contributes equal risk. It takes no view on the direction of commodity prices as realized beta to the commodity complex is −0.06 and R^2 is 0.01.
 
 ## Headline
 
@@ -29,7 +29,7 @@ Every figure is produced by one run of `engine/final_numbers.py` and committed t
 ## Quick start
 
 **Without a Databento subscription** — verifies the machinery and reproduces the reported performance statistics from committed derived data:
-
+(I used $125 free credits from Databento to download, ended up totaling to ~$10
 ```bash
 git clone https://github.com/albertoramirez77/algo_app
 cd algo_application
@@ -52,10 +52,9 @@ make exhibits
 `make numbers` should reproduce the committed `docs/FINAL_NUMBERS.txt` byte for byte. If it does not, the run is not deterministic and that is a bug.
 
 ---
-
 ## What is committed, and what is not
 
-Databento's licence does not permit redistributing historical CME data, so no raw price file is in this repository. What *is* here is enough to check every reported number:
+Databento's license probably doesn't permit redistributing historical CME data, so no raw price file is in this repo. What is here is enough to check every reported number:
 
 | Path | Contents |
 |---|---|
@@ -67,7 +66,7 @@ Databento's licence does not permit redistributing historical CME data, so no ra
 | `data/derived/cost_table.csv` | per-instrument notional, tick value, cost in bp |
 | `data/derived/benchmarks.csv` | equal-weighted complex, front momentum, carry, trend |
 
-From those five CSVs a reader reproduces the Sharpe, *t*, drawdown, the 42-month underwater period, the regime table, the bootstrap, the jackknife and the portfolio combination — with no vendor data at all. See `data/README.md` for the full fetch specification.
+From those five CSVs one can reproduce the Sharpe, t-stat, drawdown, the 42-month underwater period, the regime table, the bootstrap, the jackknife and the portfolio combination, with no vendor data at all. But see `data/README.md` for the full fetch specification.
 
 ---
 
@@ -101,31 +100,24 @@ docs/                       FINAL_NUMBERS.txt, figures, replication notes
 ## What to read first
 
 - **`failed_research/README.md`** — six hypotheses that did not survive, with predictions stated in the docstrings before the results were known. The original thesis of this project was that commercial hedger positioning predicts returns; it produced a slope of 0.003 (*t* = 0.08) against a published benchmark of 4.77 (*t* = 6.55). That null is reported here rather than buried, and it is why the strategy that shipped works through a different channel.
-- **`engine/final_numbers.py`, the header** — a net-exposure control that helped one construction and hurt another, recorded as rejected, with an earlier hypothesis of mine explicitly marked wrong.
 - **`docs/REPLICATION_NOTES.md`** — three real data defects and their fixes: a Cartesian-product join on roll dates, `ts_recv` vs `ts_ref` timestamps, and the cents-versus-dollars scale error that inflated seven of seventeen notionals by 100×.
 - **`research/mechanism/`** — the horse race establishing that the deferred contract of the *same* commodity removes 93.6% of the shared price movement, against 47.5% for eight principal components built from other commodities.
 
 ## Design rules enforced in code
 
 1. **Point-in-time inputs.** Every input carries the timestamp at which it became knowable, and signals assert against it.
-2. **Whole contracts.** Positions are integers times real multipliers. 17.2% of intended positions round to zero and are not held; that cost is inside every number reported.
-3. **No back-adjusted prices.** Returns are chained strictly within a single contract's life. The price gap at a roll is a bookkeeping artefact, not a return.
+2. **Whole contracts.** Positions are integers times real multipliers. 17.2% of intended positions round to zero and are not held, and that cost is inside every number reported.
+3. **No back-adjusted prices.** Returns are chained strictly within a single contract's life. The price gap at a roll is a bookkeeping artifact, not a return.
 4. **Ex-ante universe rule.** One instrument is excluded on contract specifications alone, before any return was computed.
-
-## A note on `immediacy.py`
-
-The file is named after this project's original hypothesis — selling immediacy to commercial hedgers, following Kang, Rouwenhorst & Tang (JF 2020). **That hypothesis was rejected** (`failed_research/hedger_flow_null/`). The engine survives because its machinery — the point-in-time clock, integer sizing, the sealed out-of-sample window — is sound and well tested, and because `make smoke` exercises it without needing data. The strategy reported above is produced by `engine/final_numbers.py`, which does not import it.
 
 ## References
 
-- Boons & Prado (2019). "Basis-Momentum." *Journal of Finance*. — the documented factor this strategy builds on.
-- Kang, Rouwenhorst & Tang (2020). "A Tale of Two Premiums." *Journal of Finance*. — the rejected hypothesis.
-- Carver (2015). *Systematic Trading*. Harriman House.
+- Boons & Prado (2019). "Basis-Momentum." *Journal of Finance*.
 
 ## What this is not
 
-The underlying signal is published. This repository does not claim to have discovered it. What is mine: the evidence for **why** the deferred contract is the right hedge (won 16 of 16 against a hindsight-chosen peer), a test of where the mechanism predicts the effect should be absent (35 instruments, four asset classes), an implementation that survives whole contracts and real costs at $450,000, and a risk control derived from the economics, pre-specified, tested, and rejected.
+The underlying signal is published, this repo does not claim to have discovered it. What is novel is the evidence for **why** the deferred contract is the right hedge (won 16 of 16 against a hindsight-chosen peer), a test of where the mechanism predicts the effect should be absent (35 instruments, four asset classes), an implementation that survives whole contracts and real costs at $450,000, and a risk control derived from the economics, pre-specified, tested, and rejected.
 
-## Licence
+## License
 
-MIT for the code — see `LICENSE`. Market data is subject to Databento's terms and is not redistributed here.
+MIT for the code — see `LICENSE`. Market data is fully subject to Databento's terms and is not redistributed here.
