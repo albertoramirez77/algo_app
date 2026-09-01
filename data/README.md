@@ -4,8 +4,6 @@ All data originates from two sources:
 - **Databento** (CME Globex, dataset `GLBX.MDP3`) — price settlements, open interest, definitions
 - **CFTC** — Disaggregated Commitments of Traders (Futures Only)
 
-No Bloomberg or Refinitiv subscription is required.
-
 ---
 
 ## Pipeline Order
@@ -14,7 +12,7 @@ No Bloomberg or Refinitiv subscription is required.
 fetch/ → clean/ → [px_clean.parquet, cot.parquet] → engine/
 ```
 
-Run in this exact order. Each step validates its output before passing it downstream.
+Run in it the exact order, each step validates its output before passing it downstream.
 
 ---
 
@@ -85,4 +83,4 @@ python data/diagnostics/status.py    # Always run this first
 | `px_curve.parquet` | Curve panel: front and second contract settlements with expiry dates |
 | `px_wide.parquet` | Wide-format price panel (pre-repair, kept for reconciliation) |
 
-These files are not committed to git (too large). They are generated locally by running the pipeline above.
+These files are not committed to git (too large), so they are generated locally by running the pipeline above.
