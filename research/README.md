@@ -1,7 +1,7 @@
 # research/ — Supporting Research
 
 Every subfolder here validates, extends, or challenges some aspect of the core strategy.
-The strategy claimed nothing that isn't backed by at least one script here.
+The strategy claims nothing that isn't backed by at least one script here.
 
 ---
 
