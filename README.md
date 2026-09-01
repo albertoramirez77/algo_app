@@ -24,6 +24,8 @@ A barrel of oil for next month and a barrel for three months out are the same ba
 
 Every figure is produced by one run of `engine/final_numbers.py` and committed to `docs/FINAL_NUMBERS.txt`. Run `make verify` to recompute the table above from the committed monthly return series — no data subscription required.
 
+<img width="2200" height="1320" alt="image" src="https://github.com/user-attachments/assets/6435b1bf-fa32-4763-a03a-31e97b077e9b" />
+
 ---
 
 ## Quick start
@@ -105,6 +107,9 @@ docs/                       FINAL_NUMBERS.txt, figures, replication notes
 - **`failed_research/README.md`** — six hypotheses that did not survive, with predictions stated in the docstrings before the results were known. The original thesis of this project was that commercial hedger positioning predicts returns; it produced a slope of 0.003 (*t* = 0.08) against a published benchmark of 4.77 (*t* = 6.55). That null is reported here rather than buried, and it is why the strategy that shipped works through a different channel.
 - **`docs/REPLICATION_NOTES.md`** — three real data defects and their fixes: a Cartesian-product join on roll dates, `ts_recv` vs `ts_ref` timestamps, and the cents-versus-dollars scale error that inflated seven of seventeen notionals by 100×.
 - **`research/mechanism/`** — the horse race establishing that the deferred contract of the *same* commodity removes 93.6% of the shared price movement, against 47.5% for eight principal components built from other commodities.
+
+<img width="2200" height="1000" alt="image" src="https://github.com/user-attachments/assets/07273066-6fc8-4381-8814-c693f55e0eed" />
+
 
 ## Design rules enforced in code
 
