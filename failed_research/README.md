@@ -1,9 +1,6 @@
-# failed_research/ — Honest Accounting of Null Results
+# failed_research/ —  Accounting of Null Results
 
-This folder documents every hypothesis that was tested and did not survive. In quantitative
-research, failed hypotheses are as important as successful ones: they define the limits of
-the effect, constrain the mechanism, and prevent the presentation of a backtest as a claim
-that none of these directions were explored.
+This folder documents every hypothesis that was tested and did not survive.
 
 Every script here was written and run before the result was known. The predictions are
 stated in the docstrings.
@@ -61,7 +58,7 @@ spread dynamics.
 ## speculator_crowding/ — Crowding Hypothesis
 
 **Hypothesis**: Basis-momentum earns more when speculators are crowded into the TREND
-factor (Uhl 2025 alignment hypothesis) — the premium compensates for the additional
+factor (Uhl 2025 alignment hypothesis), the premium compensates for the additional
 immediacy demand.
 
 **`crowd_bm.py`**:
@@ -126,7 +123,7 @@ index, rates) is a distinct, non-delivery-related effect that could expand the u
 
 **`blindnet.py`**:
 - A neural network trained only on raw curve legs (front return, deferred return, basis,
-  volatility, open interest, days to expiry) — never given the engineered signal.
+  volatility, open interest, days to expiry), never given the engineered signal.
 - **Hypothesis**: If the signal is real, the network should independently weight front
   and deferred returns in opposite directions (reconstructing the spread).
 - **Result**: Network underperformed the linear strategy (expected at n≈3,000 training
@@ -142,6 +139,3 @@ Every failed test increased our confidence in the surviving signal by:
 1. Confirming the alignment plumbing was correct (positive controls passed)
 2. Bounding the mechanism (delivery-specific, not general pre-expiry; curve shape, not flow)
 3. Eliminating alternative explanations (crowding, sector tilt, curve segment beyond front/deferred)
-
-A strategy that has only been tested for what it claims, and never for what it does not
-claim, is not a strategy — it is a backtest.
