@@ -29,16 +29,17 @@ Every figure is produced by one run of `engine/final_numbers.py` and committed t
 ## Quick start
 
 **Without a Databento subscription** — verifies the machinery and reproduces the reported performance statistics from committed derived data:
-(I used $125 free credits from Databento to download, ended up totaling to ~$10
 ```bash
 git clone https://github.com/albertoramirez77/algo_app
-cd algo_application
+cd algo_app
 make install
 make test        # 179 tests
+make verify      # recomputes headline table
 make smoke       # synthetic-data run of the engine, no API key needed
 ```
 
 **With a Databento subscription** — rebuilds everything from raw settlements:
+** (I used $125 free credits from Databento, this took ~$10 total) **
 
 ```bash
 export DATABENTO_API_KEY='db-...'
@@ -51,10 +52,12 @@ make exhibits
 
 `make numbers` should reproduce the committed `docs/FINAL_NUMBERS.txt` byte for byte. If it does not, the run is not deterministic and that is a bug.
 
+**run the command make all to regenerate every number and figure in the pitch from raw data** 
+
 ---
 ## What is committed, and what is not
 
-Databento's license probably doesn't permit redistributing historical CME data, so no raw price file is in this repo. What is here is enough to check every reported number:
+Databento's license realistically doesn't permit redistributing historical CME data, so no raw price file is in this repo. What is here is enough to check every reported number:
 
 | Path | Contents |
 |---|---|
@@ -64,9 +67,9 @@ Databento's license probably doesn't permit redistributing historical CME data, 
 | `data/derived/pnl_by_instrument.csv` | monthly P&L contribution per instrument |
 | `data/derived/signal_ranks.csv` | monthly cross-sectional signal and rank |
 | `data/derived/cost_table.csv` | per-instrument notional, tick value, cost in bp |
-| `data/derived/benchmarks.csv` | equal-weighted complex, front momentum, carry, trend |
+| `data/derived/benchmarks.csv` | front momentum, carry, trend |
 
-From those five CSVs one can reproduce the Sharpe, t-stat, drawdown, the 42-month underwater period, the regime table, the bootstrap, the jackknife and the portfolio combination, with no vendor data at all. But see `data/README.md` for the full fetch specification.
+From those five CSVs one can reproduce the Sharpe, t-stat, drawdown, the 42-month underwater period, the regime table, the bootstrap, the jackknife, with no vendor data at all. But see `data/README.md` for the full fetch specification.
 
 ---
 
