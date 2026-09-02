@@ -38,7 +38,6 @@ derived:
 exhibits:
 	@mkdir -p docs/figures
 	python exhibits/make_exhibits.py --prices $(PRICES)
-	python exhibits/riskfigs.py --prices $(PRICES)
 
 all: numbers derived exhibits
 
