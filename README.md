@@ -10,7 +10,7 @@ Alberto Ramirez-Aguiar · aramirezaguiar@ufl.edu
 
 ## The idea in four sentences
 
-A barrel of oil for next month and a barrel for three months out are the same barrel, and the gap between their prices measures how physically tight the commodity is right now. Inventories move slowly, you cannot refill a silo out of season, so a gap that has been tightening tends to keep tightening. Each month the strategy ranks sixteen commodities on the twelve-month change in that gap, buys the tightening curves and sells the loosening ones, sized so each contributes equal risk. It takes no view on the direction of commodity prices as realized beta to the commodity complex is −0.06 and R^2 is 0.01.
+A barrel of oil for next month and a barrel for three months out are the same barrel, and the gap between their prices measures how physically tight the commodity is right now. Inventories move slowly, you can't refill a silo out of season, so a gap that has been tightening tends to keep tightening. Each month the strategy ranks sixteen commodities on the twelve-month change in that gap, buys the tightening curves and sells the loosening ones, sized so each contributes equal risk. It takes no view on the direction of commodity prices as realized beta to the commodity complex is −0.15 and R^2 is 0.01.
 
 ## Headline
 
@@ -69,7 +69,7 @@ Databento's license realistically doesn't permit redistributing historical CME d
 | `data/derived/pnl_by_instrument.csv` | monthly P&L contribution per instrument |
 | `data/derived/signal_ranks.csv` | monthly cross-sectional signal and rank |
 | `data/derived/cost_table.csv` | per-instrument notional, tick value, cost in bp |
-| `data/derived/benchmarks.csv` | front momentum, carry, trend |
+| `data/derived/benchmarks.csv` | front momentum, carry |
 
 From those five CSVs one can reproduce the Sharpe, t-stat, drawdown, the 42-month underwater period, the regime table, the bootstrap, the jackknife, with no vendor data at all. But see `data/README.md` for the full fetch specification.
 
