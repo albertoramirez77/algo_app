@@ -42,10 +42,6 @@ figures:
 	python exhibits/readme_figures.py
 	python exhibits/pitch_exhibit_page.py
 
-exhibits:
-	@mkdir -p docs/figures
-	python exhibits/make_exhibits.py --prices $(PRICES)
-
 all: numbers derived figures exhibits
 
 clean:
