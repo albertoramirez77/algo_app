@@ -4,11 +4,6 @@ without redistributing any vendor data.
 
     python data/export_derived.py --prices data/px_clean.parquet
 
-Databento's licence does not permit republishing historical CME settlement prices, so
-this repository ships derived series instead. They are transformations that cannot be
-reverse-engineered back to settlement prices and are not a substitute for them, which is
-the standard derived-data test.
-
 From the five files written here a reader reproduces the Sharpe ratio, the t-statistic,
 annualised return and volatility, the drawdown and its duration, the regime table, the
 block bootstrap, the jackknife, the placebo distribution and the portfolio combination —
