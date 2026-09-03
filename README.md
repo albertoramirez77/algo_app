@@ -30,8 +30,6 @@ Run `make verify` to recompute the table above from the committed monthly return
 
 ## Quick start
 
-**I put the cleaned data in here directly to streamline the process of data extraction, you can simply run make numbers **
-
 **Without a Databento subscription** — verifies the machinery and reproduces the reported performance statistics from committed derived data:
 ```bash
 git clone https://github.com/albertoramirez77/algo_app
