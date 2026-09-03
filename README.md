@@ -30,7 +30,7 @@ Run `make verify` to recompute the table above from the committed monthly return
 
 ## Quick start
 
-**Repairing the data pipeline right now to streamline the work and adhere to Databento's licenses, if you are reading this, it will be fixed asap**
+**Repairing the data pipeline right now to streamline the work and adhere to Databento's licenses, if you are reading this, it will be fixed asap, but you can simply run make numbers currently to replicate**
 
 **Without a Databento subscription** — verifies the machinery and reproduces the reported performance statistics from committed derived data:
 ```bash
