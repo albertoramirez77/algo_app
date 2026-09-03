@@ -22,13 +22,15 @@ A barrel of oil for next month and a barrel for three months out are the same ba
 | Maximum drawdown | −28.0% | Beta / R^2 vs. complex | −0.06 / 0.01 |
 | Correlation to trend-following | +0.007 | Front momentum / carry, same universe | 0.14 / 0.37 |
 
-Every figure is produced by one run of `engine/final_numbers.py` and committed to `docs/FINAL_NUMBERS.txt`. Run `make verify` to recompute the table above from the committed monthly return series, no data subscription required.
+Run `make verify` to recompute the table above from the committed monthly return series.
 
 <img width="2200" height="1320" alt="image" src="https://github.com/user-attachments/assets/6435b1bf-fa32-4763-a03a-31e97b077e9b" />
 
 ---
 
 ## Quick start
+
+**I put the cleaned data in here directly to streamline the process of data extraction, you can simply run make numbers and exhibits **
 
 **Without a Databento subscription** — verifies the machinery and reproduces the reported performance statistics from committed derived data:
 ```bash
