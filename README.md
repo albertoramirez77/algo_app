@@ -30,7 +30,7 @@ Run `make verify` to recompute the table above from the committed monthly return
 
 ## Quick start
 
-**I put the cleaned data in here directly to streamline the process of data extraction, you can simply run make numbers and exhibits **
+**I put the cleaned data in here directly to streamline the process of data extraction, you can simply run make numbers **
 
 **Without a Databento subscription** — verifies the machinery and reproduces the reported performance statistics from committed derived data:
 ```bash
@@ -51,7 +51,6 @@ python data/fetch/fetch_curve.py      # batch job, ~15 minutes
 python data/clean/curve_to_px.py      # rebuild on ts_ref, repair roll-date duplicates
 make numbers                          # writes docs/FINAL_NUMBERS.txt
 make derived                          # regenerates the committed CSVs
-make exhibits
 ```
 
 `make numbers` should reproduce the committed `docs/FINAL_NUMBERS.txt` byte for byte.
