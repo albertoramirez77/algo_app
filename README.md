@@ -52,9 +52,7 @@ make derived                          # regenerates the committed CSVs
 make exhibits
 ```
 
-`make numbers` should reproduce the committed `docs/FINAL_NUMBERS.txt` byte for byte. If it does not, the run is not deterministic and that is a bug.
-
-**run the command make all to regenerate every number and figure in the pitch from raw data** 
+`make numbers` should reproduce the committed `docs/FINAL_NUMBERS.txt` byte for byte. If it does not, the run is not deterministic and that is a bug. 
 
 ---
 ## What is committed, and what is not
@@ -63,8 +61,8 @@ Databento's license realistically doesn't permit redistributing historical CME d
 
 | Path | Contents |
 |---|---|
-| `docs/FINAL_NUMBERS.txt` | the canonical run — every figure quoted in the pitch |
-| `docs/figures/` | the exhibits |
+| `docs/FINAL_NUMBERS.txt` | every figure quoted in the pitch |
+| `docs/figures/` | exhibits |
 | `data/derived/monthly_pnl.csv` | strategy return by month, net of costs |
 | `data/derived/pnl_by_instrument.csv` | monthly P&L contribution per instrument |
 | `data/derived/signal_ranks.csv` | monthly cross-sectional signal and rank |
@@ -79,10 +77,10 @@ From those five CSVs one can reproduce the Sharpe, t-stat, drawdown, the 42-mont
 
 ```
 engine/                     the traded strategy
-    universe.py             35 contracts with full specifications; the cost rule
+    universe.py             35 contracts with full specifications + the cost rule
     final_numbers.py        the backtest and every pitch number, one run
-    flowbm.py               the production signal, with its validation suite
-    immediacy.py            engine for the REJECTED hedger-flow hypothesis (see below)
+    flowbm.py               the production signal with its validation suite
+    immediacy.py            engine for the rejected hedger-flow hypothesis
 
 research/                   the supporting work
     mechanism/              why the deferred contract is the right hedge
@@ -93,23 +91,22 @@ research/                   the supporting work
     cross_asset/            the boundary test across FX, rates and equity
     reproducibility/        every pitch number traced to its generating script
 
-failed_research/            hypotheses tested and rejected — read the README
-data/                       fetch, clean, diagnose; plus derived/ and the data spec
+failed_research/            hypotheses tested and rejected
+data/                       fetch, clean, diagnose, plus derived/ and the data spec
 tests/                      179 tests
 exhibits/                   figure generators
-docs/                       FINAL_NUMBERS.txt, figures, replication notes
+docs/                       final numbers, figures, replication notes
 ```
 
 ---
 
 ## What to read first
 
-- **`failed_research/README.md`** — six hypotheses that did not survive, with predictions stated in the docstrings before the results were known. The original thesis of this project was that commercial hedger positioning predicts returns; it produced a slope of 0.003 (*t* = 0.08) against a published benchmark of 4.77 (*t* = 6.55). That null is reported here rather than buried, and it is why the strategy that shipped works through a different channel.
-- **`docs/REPLICATION_NOTES.md`** — three real data defects and their fixes: a Cartesian-product join on roll dates, `ts_recv` vs `ts_ref` timestamps, and the cents-versus-dollars scale error that inflated seven of seventeen notionals by 100×.
-- **`research/mechanism/`** — the horse race establishing that the deferred contract of the *same* commodity removes 93.6% of the shared price movement, against 47.5% for eight principal components built from other commodities.
+- **`failed_research/README.md`** is six hypotheses that did not survive, with predictions stated in the docstrings before the results were known. The original thesis of this project was that commercial hedger positioning predicts returns, it produced a slope of 0.003 (*t* = 0.08) against a published benchmark of 4.77 (*t* = 6.55).
+- **`docs/REPLICATION_NOTES.md`** is three real data defects and their fixes. First one being a Cartesian-product join on roll dates, `ts_recv` vs `ts_ref` timestamps, and the cents-versus-dollars scale error that inflated seven of seventeen notionals by 100×.
+- **`research/mechanism/`** is the horse race establishing that the deferred contract of the same commodity removes 93.6% of the shared price movement, against 47.5% for eight principal components built from other commodities.
 
 <img width="2200" height="1000" alt="image" src="https://github.com/user-attachments/assets/07273066-6fc8-4381-8814-c693f55e0eed" />
-
 
 ## Design rules enforced in code
 
@@ -124,8 +121,8 @@ docs/                       FINAL_NUMBERS.txt, figures, replication notes
 
 ## What this is not
 
-The underlying signal is published, this repo does not claim to have discovered it. What is novel is the evidence for **why** the deferred contract is the right hedge (won 16 of 16 against a hindsight-chosen peer), a test of where the mechanism predicts the effect should be absent (35 instruments, four asset classes), an implementation that survives whole contracts and real costs at $450,000, and a risk control derived from the economics, pre-specified, tested, and rejected.
+The underlying signal is published, this does not discover it, but the evidence for why the deferred contract is the right hedge (won 16 of 16 against a hindsight-chosen peer), a test of where the mechanism predicts the effect should be absent (35 instruments, four asset classes), an implementation that survives whole contracts and real costs at $450,000, and a risk control derived from the economics, pre-specified, tested, and rejected, are personal contributions.
 
 ## License
 
-MIT for the code — see `LICENSE`. Market data is fully subject to Databento's terms and is not redistributed here.
+MIT for the code. Market data is fully subject to Databento's terms and is not redistributed here.
