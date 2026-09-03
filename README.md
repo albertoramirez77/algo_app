@@ -10,7 +10,7 @@ Alberto Ramirez-Aguiar · aramirezaguiar@ufl.edu
 
 ## The idea in four sentences
 
-A barrel of oil for next month and a barrel for three months out are the same barrel, and the gap between their prices measures how physically tight the commodity is right now. Inventories move slowly, you can't refill a silo out of season, so a gap that has been tightening tends to keep tightening. Each month the strategy ranks sixteen commodities on the twelve-month change in that gap, buys the tightening curves and sells the loosening ones, sized so each contributes equal risk. It takes no view on the direction of commodity prices as realized beta to the commodity complex is −0.15 and R^2 is 0.01.
+A barrel of oil for next month and a barrel for three months out are the same barrel, and the gap between their prices measures how physically tight the commodity is right now. Inventories move slowly, you can't refill a silo out of season, so a gap that has been tightening tends to keep tightening. Each month the strategy ranks sixteen commodities on the twelve-month change in that gap, buys the tightening curves and sells the loosening ones, sized so each contributes equal risk. It takes no view on the direction of commodity prices as realized beta to the commodity complex is −0.06 and R^2 is 0.01.
 
 ## Headline
 
