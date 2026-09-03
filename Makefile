@@ -6,14 +6,15 @@
 #   make smoke      synthetic-data run of the engine (no API key)
 #   make numbers    regenerate every number in the pitch      (needs price data)
 #   make derived    regenerate the committed derived CSVs     (needs price data)
-#   make exhibits   regenerate the figures                    (needs price data)
-#   make all        numbers + derived + exhibits
+#   make figures    regenerate all figures from derived data (no API key)
+#   make exhibits   regenerate the research exhibits         (needs price data)
+#   make all        numbers + derived + figures + exhibits
 
 export PYTHONPATH := $(CURDIR):$(CURDIR)/engine:$(CURDIR)/data/fetch
 
 PRICES ?= data/px_clean.parquet
 
-.PHONY: install test verify smoke numbers derived exhibits all clean
+.PHONY: install test verify smoke numbers derived figures exhibits all clean
 
 install:
 	pip install -r requirements.txt
@@ -35,11 +36,17 @@ numbers:
 derived:
 	python data/export_derived.py --prices $(PRICES)
 
+figures:
+	@mkdir -p docs/figures
+	python exhibits/concept_figure.py
+	python exhibits/readme_figures.py
+	python exhibits/pitch_exhibit_page.py
+
 exhibits:
 	@mkdir -p docs/figures
 	python exhibits/make_exhibits.py --prices $(PRICES)
 
-all: numbers derived exhibits
+all: numbers derived figures exhibits
 
 clean:
 	find . -name __pycache__ -type d -exec rm -rf {} + 2>/dev/null || true
