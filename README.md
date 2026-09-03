@@ -19,10 +19,10 @@ A barrel of oil for next month and a barrel for three months out are the same ba
 | Sharpe, net of costs | **0.94** | Longest drawdown | 42 months |
 | *t*-statistic | 3.66 | Winning months / profit factor | 61% / 2.04 |
 | Return / volatility | 18.3% / 19.5% | Positions rounding to zero | 17.2% |
-| Maximum drawdown | −28.0% | Beta / R² vs. complex | −0.06 / 0.01 |
+| Maximum drawdown | −28.0% | Beta / R^2 vs. complex | −0.06 / 0.01 |
 | Correlation to trend-following | +0.007 | Front momentum / carry, same universe | 0.14 / 0.37 |
 
-Every figure is produced by one run of `engine/final_numbers.py` and committed to `docs/FINAL_NUMBERS.txt`. Run `make verify` to recompute the table above from the committed monthly return series — no data subscription required.
+Every figure is produced by one run of `engine/final_numbers.py` and committed to `docs/FINAL_NUMBERS.txt`. Run `make verify` to recompute the table above from the committed monthly return series, no data subscription required.
 
 <img width="2200" height="1320" alt="image" src="https://github.com/user-attachments/assets/6435b1bf-fa32-4763-a03a-31e97b077e9b" />
 
@@ -52,7 +52,7 @@ make derived                          # regenerates the committed CSVs
 make exhibits
 ```
 
-`make numbers` should reproduce the committed `docs/FINAL_NUMBERS.txt` byte for byte. If it does not, the run is not deterministic and that is a bug. 
+`make numbers` should reproduce the committed `docs/FINAL_NUMBERS.txt` byte for byte.
 
 ---
 ## What is committed, and what is not
