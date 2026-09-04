@@ -30,7 +30,7 @@ Run `make verify` to recompute the table above from the committed monthly return
 
 ## Quick start
 
-**I put the data right here to prevent unnecessary friction and streamline the work, will take down data after**
+**I put the data in to prevent unnecessary friction and streamline the work, will take down data after**
 
 **Without a Databento subscription** — verifies the machinery and reproduces the reported performance statistics from committed derived data:
 ```bash
