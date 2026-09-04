@@ -2,7 +2,7 @@
 whence.py — where does the Sharpe actually come from, and what control does the
              economics of the strategy imply?
 
-    python whence.py --prices px_clean.parquet
+    python whence.py --prices data/px_clean.parquet
 
 PART A - AN AUDIT OF THE TRANCHING GAIN
 
@@ -183,7 +183,7 @@ def st(r):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--prices", default="px_clean.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     a = ap.parse_args()
     df, cost_map = load(a.prices)
     frames = [f for f in (grid_targets(df, o) for o in range(N_GRIDS)) if not f.empty]

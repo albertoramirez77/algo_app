@@ -1,7 +1,7 @@
 """
 legs_bm.py — is basis-momentum a long factor carrying a redundant short leg?
 
-    python legs_bm.py --prices px_wide.parquet
+    python legs_bm.py --prices data/px_clean.parquet
 
 THE OBSERVATION
 
@@ -252,7 +252,7 @@ def portfolio(m: pd.DataFrame, idm: float, sig: str, short_scale: float = 1.0,
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--prices", default="px_wide.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     ap.add_argument("--seeds", type=int, default=100)
     a = ap.parse_args()
 

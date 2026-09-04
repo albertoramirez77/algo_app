@@ -1,7 +1,7 @@
 """
 verify.py — try to break the strategy. Every structural claim, tested independently.
 
-    python verify.py --prices px_wide.parquet
+    python verify.py --prices data/px_clean.parquet
 
 WHAT THIS IS FOR
 
@@ -176,7 +176,7 @@ def sharpe(r: pd.Series) -> float:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--prices", default="px_wide.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     a = ap.parse_args()
 
     raw = pd.read_parquet(a.prices)

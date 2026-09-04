@@ -1,7 +1,7 @@
 """
 tvbm.py — validate the time-varying units correction, adversarially.
 
-    python tvbm.py --prices px_wide.parquet
+    python tvbm.py --prices data/px_clean.parquet
 
 WHAT SURVIVED THE LAST ROUND, AND WHY THE LAST VERDICT WAS WRONG
 
@@ -210,7 +210,7 @@ def line(lbl: str, s: dict, base: float | None = None) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--prices", default="px_wide.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     ap.add_argument("--seeds", type=int, default=30)
     a = ap.parse_args()
 

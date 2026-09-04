@@ -1,7 +1,7 @@
 """
 attribute.py — where does the P&L actually come from?
 
-    python attribute.py --cot cot.parquet --prices px.parquet
+    python attribute.py --cot cot.parquet --prices data/px_clean.parquet
 
 THE PROBLEM THIS SOLVES
 
@@ -86,7 +86,7 @@ def stats_of(front, sig, p, cut) -> dict:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--cot", default="cot.parquet")
-    ap.add_argument("--prices", default="px.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     ap.add_argument("--seeds", type=int, default=5)
     a = ap.parse_args()
 

@@ -1,7 +1,7 @@
 """
 asym_bm.py — is basis-momentum asymmetric because storage bounds the basis on one side?
 
-    python asym_bm.py --prices px_wide.parquet
+    python asym_bm.py --prices data/px_clean.parquet
 
 THE POWER PROBLEM THAT GOVERNS THIS ROUND
 
@@ -188,7 +188,7 @@ def cell_table(pos: pd.DataFrame) -> pd.DataFrame:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--prices", default="px_wide.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     ap.add_argument("--seeds", type=int, default=200)
     a = ap.parse_args()
 

@@ -1,7 +1,7 @@
 """
 proximity.py — does hedge quality scale with how literally "the same thing" the hedge is?
 
-    python proximity.py --prices px_clean.parquet
+    python proximity.py --prices data/px_clean.parquet
 
 THE GAP THIS CLOSES
 
@@ -98,7 +98,7 @@ def r2(y: np.ndarray, X: np.ndarray) -> float:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--prices", default="px_clean.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     a = ap.parse_args()
 
     df = load(a.prices)

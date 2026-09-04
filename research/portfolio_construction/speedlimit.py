@@ -1,7 +1,7 @@
 """
 speedlimit.py — should any instrument be excluded because it is simply too expensive?
 
-    python speedlimit.py --prices px_clean.parquet
+    python speedlimit.py --prices data/px_clean.parquet
 
 THE PROBLEM THIS ADDRESSES
 
@@ -179,7 +179,7 @@ def run(df: pd.DataFrame, keep: set, cost_map: dict | None, flat=3.0):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--prices", default="px_clean.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     a = ap.parse_args()
 
     df = load_daily(a.prices)

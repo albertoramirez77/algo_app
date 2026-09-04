@@ -1,7 +1,7 @@
 """
 mechanism_test.py — does hedger net trading predict returns in YOUR data?
 
-    python mechanism_test.py --cot cot.parquet --prices px.parquet
+    python mechanism_test.py --cot cot.parquet --prices data/px_clean.parquet
 
 This bypasses the entire portfolio construction — no sizing, no buffering, no integer
 contracts, no costs, no eligibility filter. It runs the cross-sectional regression that
@@ -107,7 +107,7 @@ def report(label: str, r: dict, unit: str = "") -> None:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--cot", default="cot.parquet")
-    ap.add_argument("--prices", default="px.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     ap.add_argument("--oos-cut", default=None,
                     help="exclude data on/after this date (keeps OOS sealed)")
     a = ap.parse_args()

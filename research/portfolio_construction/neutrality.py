@@ -1,7 +1,7 @@
 """
 neutrality.py — what kind of neutral is this book, exactly?
 
-    python neutrality.py --prices px_clean.parquet
+    python neutrality.py --prices data/px_clean.parquet
 
 THE CLAIM UNDER TEST
 
@@ -88,7 +88,7 @@ def load(path: str):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--prices", default="px_clean.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     a = ap.parse_args()
     m = load(a.prices)
 

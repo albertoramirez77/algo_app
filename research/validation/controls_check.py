@@ -1,7 +1,7 @@
 """
 controls_check.py — step 2. Is the panel broken, or was it telling the truth?
 
-    python controls_check.py --cot cot.parquet --prices px.parquet
+    python controls_check.py --cot cot.parquet --prices data/px_clean.parquet
 
 THE QUESTION
 
@@ -46,7 +46,7 @@ from mechanism_test import fm_slope, forward_returns
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--cot", default="cot.parquet")
-    ap.add_argument("--prices", default="px.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     ap.add_argument("--split", default="2011-01-01")
     a = ap.parse_args()
 

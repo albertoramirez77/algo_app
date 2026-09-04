@@ -1,7 +1,7 @@
 """
 final_numbers.py — every number the pitch needs, sixteen instruments, one run.
 
-    python final_numbers.py --prices px_clean.parquet > FINAL_NUMBERS.txt
+    python final_numbers.py --prices data/px_clean.parquet > FINAL_NUMBERS.txt
 
 NET DOLLAR EXPOSURE — TESTED AND REJECTED
 
@@ -341,7 +341,7 @@ def r2(y, X):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--prices", default="px_clean.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     ap.add_argument("--seeds", type=int, default=40)
     a = ap.parse_args()
 

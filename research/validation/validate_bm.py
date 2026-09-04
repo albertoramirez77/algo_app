@@ -1,7 +1,7 @@
 """
 validate_bm.py — is the surviving basis-momentum result real, and can it be traded?
 
-    python validate_bm.py --prices px_wide.parquet
+    python validate_bm.py --prices data/px_clean.parquet
 
 WHAT SURVIVED
 
@@ -136,7 +136,7 @@ def line(label: str, s: dict) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--prices", default="px_wide.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     a = ap.parse_args()
 
     m = load_monthly(a.prices)

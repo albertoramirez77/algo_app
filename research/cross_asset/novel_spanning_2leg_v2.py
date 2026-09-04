@@ -4,7 +4,7 @@ This intentionally does NOT claim novelty. It answers the narrower question:
 Does the maturity-differential component survive common momentum and current basis?
 
 Usage:
-    python novel_spanning_2leg_v2.py --prices px_clean.parquet
+    python novel_spanning_2leg_v2.py --prices data/px_clean.parquet
 """
 from __future__ import annotations
 import argparse, math
@@ -120,7 +120,7 @@ def pstats(r: pd.Series):
 
 
 def main():
-    ap=argparse.ArgumentParser(); ap.add_argument("--prices",default="px_clean.parquet"); a=ap.parse_args()
+    ap=argparse.ArgumentParser(); ap.add_argument("--prices",default="data/px_clean.parquet"); a=ap.parse_args()
     p=monthly_panel(load(a.prices))
     print("="*90); print("VALID 2-LEG SPANNING TEST"); print("="*90)
     print(f"rows={len(p):,}, instruments={p.symbol.nunique()}, months={p.ym.nunique()}")

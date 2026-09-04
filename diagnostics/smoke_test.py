@@ -14,16 +14,22 @@ import numpy as np
 import pandas as pd
 
 HERE=Path(__file__).resolve().parent
+ROOT=HERE.parent
 REQ2=["symbol","date","contract_0","contract_1","settle_0","settle_1","expiry_0","expiry_1"]
 REQ4=REQ2+["contract_2","contract_3","settle_2","settle_3","expiry_2","expiry_3"]
+SCRIPTS={
+    "novel_spanning_2leg_v2.py": ROOT/"research/cross_asset/novel_spanning_2leg_v2.py",
+    "build_four_curve_panel.py": ROOT/"failed_research/novel_curve_segments/build_four_curve_panel.py",
+    "novel_curve_identification_v2.py": ROOT/"failed_research/novel_curve_segments/novel_curve_identification_v2.py",
+    "run_research.py": ROOT/"failed_research/novel_curve_segments/run_research.py",
+}
 
 
 def main():
-    ap=argparse.ArgumentParser(); ap.add_argument("--prices",required=True); ap.add_argument("--four-leg") ; a=ap.parse_args()
-    scripts=["novel_spanning_2leg_v2.py","build_four_curve_panel.py","novel_curve_identification_v2.py","run_research.py"]
+    ap=argparse.ArgumentParser(); ap.add_argument("--prices",default="data/px_clean.parquet"); ap.add_argument("--four-leg") ; a=ap.parse_args()
     print("SCRIPT COMPILE")
-    for s in scripts:
-        py_compile.compile(str(HERE/s),doraise=True); print("  OK",s)
+    for s,path in SCRIPTS.items():
+        py_compile.compile(str(path),doraise=True); print("  OK",s)
     df=pd.read_parquet(a.prices); miss=[c for c in REQ2 if c not in df.columns]
     if miss: raise SystemExit("2-leg schema missing: "+", ".join(miss))
     print(f"2-leg schema OK: {df.shape}, symbols={df.symbol.nunique()}")

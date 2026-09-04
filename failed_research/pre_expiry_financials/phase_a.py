@@ -1,7 +1,7 @@
 """
 phase_a.py — is the financials pre-expiry effect real, or did the residualisation make it?
 
-    python phase_a.py --prices px_wide.parquet
+    python phase_a.py --prices data/px_clean.parquet
 
 THE RESULT UNDER INVESTIGATION
 
@@ -134,7 +134,7 @@ def show_profile(s: pd.DataFrame, col: str, label: str) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--prices", default="px_wide.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     a = ap.parse_args()
 
     df = load(a.prices)

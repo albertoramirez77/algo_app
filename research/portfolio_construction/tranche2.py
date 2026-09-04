@@ -1,7 +1,7 @@
 """
 tranche2.py — the tranched book, marked daily. The first version was wrong.
 
-    python tranche2.py --prices px_clean.parquet
+    python tranche2.py --prices data/px_clean.parquet
 
 WHAT WAS WRONG WITH THE FIRST VERSION
 
@@ -200,7 +200,7 @@ def st(daily: pd.Series) -> dict:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--prices", default="px_clean.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     ap.add_argument("--grids", type=int, default=N_GRIDS)
     a = ap.parse_args()
 

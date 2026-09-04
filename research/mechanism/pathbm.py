@@ -1,7 +1,7 @@
 """
 pathbm.py — two questions: why does basis-momentum work, and does HOW the curve moved matter?
 
-    python pathbm.py --prices px_wide.parquet
+    python pathbm.py --prices data/px_clean.parquet
 
 PART A — WHY IT WORKS, WITHOUT INVENTING A STORY
 
@@ -247,7 +247,7 @@ def line(lbl: str, s: dict) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--prices", default="px_wide.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     ap.add_argument("--seeds", type=int, default=20)
     a = ap.parse_args()
 

@@ -1,7 +1,7 @@
 """
 blindnet.py — does a neural network, shown only raw curve data, rediscover the signal?
 
-    python blindnet.py --prices px_clean.parquet
+    python blindnet.py --prices data/px_clean.parquet
 
 WHAT THIS IS FOR, AND WHAT IT IS NOT FOR
 
@@ -205,7 +205,7 @@ def net_fn(seed: int):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--prices", default="px_clean.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     ap.add_argument("--seeds", type=int, default=SEEDS)
     a = ap.parse_args()
 

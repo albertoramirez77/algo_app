@@ -1,7 +1,7 @@
 """
 test_squeeze.py — the convergence squeeze, tested against three pre-registered predictions.
 
-    python test_squeeze.py --prices px_wide.parquet
+    python test_squeeze.py --prices data/px_clean.parquet
 
 Read 08_preregistration.md first. The predictions were written before this data existed.
 
@@ -177,7 +177,7 @@ def profile(s: pd.DataFrame, label: str) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--prices", default="px_wide.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     ap.add_argument("--seeds", type=int, default=10)
     a = ap.parse_args()
 

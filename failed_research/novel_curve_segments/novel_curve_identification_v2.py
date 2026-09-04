@@ -279,7 +279,7 @@ def split_stats(p, signal):
 
 def main():
     ap=argparse.ArgumentParser()
-    ap.add_argument("--prices",required=True)
+    ap.add_argument("--prices",default="data/px_clean.parquet")
     ap.add_argument("--out",default="curve_identification_report.txt")
     a=ap.parse_args()
     raw=load(a.prices)

@@ -1,7 +1,7 @@
 """
 normbm.py — basis-momentum is measured in inconsistent units. Does fixing it help?
 
-    python normbm.py --prices px_wide.parquet
+    python normbm.py --prices data/px_clean.parquet
 
 THE DEFECT
 
@@ -208,7 +208,7 @@ def spanning(y: pd.Series, x: pd.Series, ylab: str, xlab: str) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--prices", default="px_wide.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     ap.add_argument("--seeds", type=int, default=20)
     a = ap.parse_args()
 

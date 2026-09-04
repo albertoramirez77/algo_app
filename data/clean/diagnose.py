@@ -1,7 +1,7 @@
 """
 diagnose.py — pin down the three verification failures exactly.
 
-    python diagnose.py --prices px_wide.parquet
+    python diagnose.py --prices data/px_clean.parquet
 
 Three checks failed in verify.py. Guessing at causes is how this project produced a
 timestamp bug that corrupted an entire dataset. So this locates each one precisely and
@@ -26,7 +26,7 @@ except ImportError:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--prices", default="px_wide.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     a = ap.parse_args()
 
     df = pd.read_parquet(a.prices)

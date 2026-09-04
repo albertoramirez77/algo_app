@@ -1,7 +1,7 @@
 """
 sizing.py — the diversification multiplier is not a parameter. It has an exact solution.
 
-    python sizing.py --prices px_clean.parquet
+    python sizing.py --prices data/px_clean.parquet
 
 THE OBSERVATION
 
@@ -234,7 +234,7 @@ def line(lbl: str, s: dict, d: pd.DataFrame | None = None, base: float | None = 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--prices", default="px_clean.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     a = ap.parse_args()
 
     m = load(a.prices)

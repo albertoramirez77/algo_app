@@ -5,7 +5,7 @@ Six checks. Numbers 4 and 5 are the ones that matter: check 4 tells you whether 
 usable, and check 5 measures the single quantity that decides whether this strategy is
 viable at $450,000.
 
-    python check_data.py --cot cot.parquet --prices px.parquet
+    python check_data.py --cot cot.parquet --prices data/px_clean.parquet
 """
 
 from __future__ import annotations
@@ -154,7 +154,7 @@ def check_lookahead(cot: pd.DataFrame) -> None:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--cot", default="cot.parquet")
-    ap.add_argument("--prices", default="px.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     a = ap.parse_args()
 
     cot = pd.read_parquet(a.cot)

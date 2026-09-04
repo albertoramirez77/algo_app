@@ -2,7 +2,7 @@
 test_basismomentum.py — does the PRICE-based measure of liquidity-provision imbalance work
 where the POSITIONING-based measure failed?
 
-    python test_basismomentum.py --prices px_wide.parquet
+    python test_basismomentum.py --prices data/px_clean.parquet
 
 WHY THIS HYPOTHESIS AND NOT ANOTHER
 
@@ -206,7 +206,7 @@ def show(label: str, st: dict) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--prices", default="px_wide.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     ap.add_argument("--seeds", type=int, default=20)
     a = ap.parse_args()
 

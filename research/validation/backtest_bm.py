@@ -1,7 +1,7 @@
 """
 backtest_bm.py — run the surviving strategy with integer contracts and real costs.
 
-    python backtest_bm.py --prices px_wide.parquet
+    python backtest_bm.py --prices data/px_clean.parquet
 
 WHY A BACKTEST AND NOT A TABLE
 
@@ -181,7 +181,7 @@ def line(label: str, s: dict) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--prices", default="px_wide.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     ap.add_argument("--capital", type=float, default=450_000)
     ap.add_argument("--bps", type=float, default=3.0)
     a = ap.parse_args()

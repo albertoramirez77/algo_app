@@ -1,7 +1,7 @@
 """
 controls.py — the four questions the pitch still does not answer.
 
-    python controls.py --prices px_clean.parquet
+    python controls.py --prices data/px_clean.parquet
 
 A  NET SECTOR CAP, done correctly this time
 B  THE HEDGE, which the fund asked about directly and the pitch never answers
@@ -192,7 +192,7 @@ def st(r: pd.Series) -> dict:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--prices", default="px_clean.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     a = ap.parse_args()
 
     cm, fx = load(a.prices)

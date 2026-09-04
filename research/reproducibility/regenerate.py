@@ -1,7 +1,7 @@
 """
 regenerate.py — every number in the pitch, from one file, in one run.
 
-    python regenerate.py --prices px_clean.parquet > PITCH_NUMBERS.txt
+    python regenerate.py --prices data/px_clean.parquet > PITCH_NUMBERS.txt
 
 WHY THIS EXISTS
 
@@ -216,7 +216,7 @@ def channels(path, m):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--prices", default="px_clean.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     ap.add_argument("--seeds", type=int, default=40)
     a = ap.parse_args()
 

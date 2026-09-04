@@ -2,7 +2,7 @@
 test_rollpressure.py — does the size of a forced roll, relative to the capacity available to
 absorb it, predict the calendar spread?
 
-    python test_rollpressure.py --prices px_wide.parquet
+    python test_rollpressure.py --prices data/px_clean.parquet
 
 Read 11_preregistration_rollpressure.md first. Predictions were fixed before this ran.
 
@@ -231,7 +231,7 @@ def portfolio(panel: pd.DataFrame, xcol: str, h: int) -> dict:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--prices", default="px_wide.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     ap.add_argument("--seeds", type=int, default=10)
     a = ap.parse_args()
 

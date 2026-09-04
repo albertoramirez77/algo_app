@@ -1,7 +1,7 @@
 """
 analysis.py — bootstrap distributions and the strategy against its market.
 
-    python analysis.py --prices px_clean.parquet
+    python analysis.py --prices data/px_clean.parquet
 
     ANALYSIS.pdf / ANALYSIS.png  - six panels, for your own reading rather than the pitch
 
@@ -217,7 +217,7 @@ def hist_panel(ax, vals, real, title, xlabel, pct=False, lo_better=False):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--prices", default="px_clean.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     ap.add_argument("--out", default="ANALYSIS")
     a = ap.parse_args()
 

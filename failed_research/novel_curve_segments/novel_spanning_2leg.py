@@ -17,7 +17,7 @@ With only two maturities, curvature is unidentified.
 The important question is whether BM survives conventional controls.
 
 Usage:
-    python novel_spanning_2leg.py --prices px_clean.parquet
+    python novel_spanning_2leg.py --prices data/px_clean.parquet
 """
 
 from __future__ import annotations
@@ -380,7 +380,7 @@ def main():
 
     ap.add_argument(
         "--prices",
-        default="px_clean.parquet"
+        default="data/px_clean.parquet"
     )
 
     a = ap.parse_args()

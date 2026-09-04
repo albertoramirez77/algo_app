@@ -1,7 +1,7 @@
 """
 exhibits.py — the complete exhibit page, in one file.
 
-    python exhibits.py --prices px_clean.parquet
+    python exhibits.py --prices data/px_clean.parquet
 
 Produces EXHIBITS.pdf and EXHIBITS.png: six panels on one portrait page, sized to drop
 straight into the pitch as its final page.
@@ -438,7 +438,7 @@ def panel_mc(ax, dds, realised, pct):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--prices", default="px_clean.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     ap.add_argument("--seeds", type=int, default=40)
     ap.add_argument("--out", default="EXHIBITS")
     a = ap.parse_args()

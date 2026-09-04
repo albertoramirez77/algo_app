@@ -1,7 +1,7 @@
 """
 channels.py — where does the signal live: the curve, or the cross-section?
 
-    python channels.py --prices px_wide.parquet
+    python channels.py --prices data/px_clean.parquet
 
 THE PRINCIPLE THIS TESTS
 
@@ -311,7 +311,7 @@ def spanning(y: pd.Series, x: pd.Series, ylab: str, xlab: str) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--prices", default="px_wide.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     ap.add_argument("--seeds", type=int, default=25)
     a = ap.parse_args()
 

@@ -1,7 +1,7 @@
 """
 audit.py — an attempt to kill the strategy.
 
-    python audit.py --prices px_clean.parquet
+    python audit.py --prices data/px_clean.parquet
 
 This script is written to FAIL the strategy, not to confirm it. Every check below is an
 attack. A clean result only means the attack missed, and each one states what a failure
@@ -179,7 +179,7 @@ def sharpe(r):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--prices", default="px_clean.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     a = ap.parse_args()
     df = load(a.prices)
     m, dropped = commodity_panel(df)

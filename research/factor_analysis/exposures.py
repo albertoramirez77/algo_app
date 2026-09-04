@@ -1,7 +1,7 @@
 """
 exposures.py — what is this strategy accidentally long?
 
-    python exposures.py --prices px_clean.parquet
+    python exposures.py --prices data/px_clean.parquet
 
 WHY THIS EXISTS
 
@@ -293,7 +293,7 @@ def uni(y: pd.Series, x: pd.Series):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--prices", default="px_clean.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     a = ap.parse_args()
 
     df = load_daily(a.prices)

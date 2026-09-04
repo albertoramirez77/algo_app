@@ -1,7 +1,7 @@
 """
 dd_diag.py — what actually happened during the 42-month drawdown?
 
-    python dd_diag.py --prices px_clean.parquet
+    python dd_diag.py --prices data/px_clean.parquet
 """
 import argparse
 import numpy as np
@@ -65,7 +65,7 @@ def grid_targets(df, offset, min_n=6):
     return pd.DataFrame(rows)
 
 def main():
-    ap=argparse.ArgumentParser(); ap.add_argument("--prices",default="px_clean.parquet")
+    ap=argparse.ArgumentParser(); ap.add_argument("--prices",default="data/px_clean.parquet")
     a=ap.parse_args()
     df=load(a.prices)
     frames=[f for f in (grid_targets(df,o) for o in range(N_GRIDS)) if not f.empty]

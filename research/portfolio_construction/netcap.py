@@ -1,7 +1,7 @@
 """
 netcap.py — bounding the one uncontrolled tail left in the book.
 
-    python netcap.py --prices px_clean.parquet
+    python netcap.py --prices data/px_clean.parquet
 
 THE PROBLEM
 
@@ -182,7 +182,7 @@ def st(r):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--prices", default="px_clean.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     a = ap.parse_args()
     m, dropped = load(a.prices)
     syms = sorted(m["symbol"].unique())

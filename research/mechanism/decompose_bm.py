@@ -1,7 +1,7 @@
 """
 decompose_bm.py — where did every basis point of the Sharpe come from?
 
-    python decompose_bm.py --prices px_wide.parquet
+    python decompose_bm.py --prices data/px_clean.parquet
 
 WHY THIS EXISTS
 
@@ -189,7 +189,7 @@ def line(lbl: str, s: dict, delta: float | None = None) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--prices", default="px_wide.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     ap.add_argument("--seeds", type=int, default=25)
     a = ap.parse_args()
 

@@ -1,7 +1,7 @@
 """
 diagnose_null.py — is the null real, or is the return data broken?
 
-    python diagnose_null.py --cot cot.parquet --prices px.parquet
+    python diagnose_null.py --cot cot.parquet --prices data/px_clean.parquet
 
 mechanism_test.py found a slope of 0.003 (t=0.08) on hedger net trading against KRT's
 published 4.77. That is absence, not attenuation. Two very different things produce it:
@@ -85,7 +85,7 @@ def show(label: str, r: dict, expect: str = "") -> None:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--cot", default="cot.parquet")
-    ap.add_argument("--prices", default="px.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     a = ap.parse_args()
 
     px = pd.read_parquet(a.prices); cot = pd.read_parquet(a.cot)

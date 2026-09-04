@@ -768,7 +768,7 @@ def main() -> None:
     ap.add_argument("--smoke", action="store_true", help="synthetic data, machinery only")
     ap.add_argument("--run", action="store_true", help="real data")
     ap.add_argument("--cot", type=str, default=None)
-    ap.add_argument("--prices", type=str, default=None)
+    ap.add_argument("--prices", type=str, default="data/px_clean.parquet")
     ap.add_argument("--oos-unlock", action="store_true",
                     help="touch the out-of-sample window. Once, at the end.")
     args = ap.parse_args()

@@ -1,7 +1,7 @@
 """
 test_curve.py — step 3. Three questions, one dataset, placebos included.
 
-    python test_curve.py --prices px_curve.parquet
+    python test_curve.py --prices data/px_clean.parquet
 
 WHAT THIS ANSWERS
 
@@ -293,7 +293,7 @@ def delivery_profile(df: pd.DataFrame, seeds: int) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--prices", default="px_curve.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     ap.add_argument("--seeds", type=int, default=5)
     a = ap.parse_args()
 

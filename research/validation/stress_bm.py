@@ -1,7 +1,7 @@
 """
 stress_bm.py — try to break the surviving strategy.
 
-    python stress_bm.py --prices px_wide.parquet
+    python stress_bm.py --prices data/px_clean.parquet
 
 TWO PROBLEMS WITH THE HEADLINE NUMBER, FIXED HERE
 
@@ -174,7 +174,7 @@ def line(lbl: str, s: dict, extra: str = "") -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--prices", default="px_wide.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     ap.add_argument("--seeds", type=int, default=25)
     a = ap.parse_args()
 

@@ -1,7 +1,7 @@
 """
 tranche.py — the rebalance date is arbitrary. Averaging over all of them removes noise.
 
-    python tranche.py --prices px_clean.parquet
+    python tranche.py --prices data/px_clean.parquet
 
 THE OBSERVATION
 
@@ -200,7 +200,7 @@ def st(r: pd.Series) -> dict:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--prices", default="px_clean.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     ap.add_argument("--grids", type=int, default=N_GRIDS)
     a = ap.parse_args()
 

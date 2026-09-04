@@ -1,7 +1,7 @@
 """
 crossasset.py — does curve-residual momentum work outside commodities?
 
-    python crossasset.py --prices px_clean.parquet
+    python crossasset.py --prices data/px_clean.parquet
 
 WHY THIS IS NOT A REPEAT
 
@@ -253,7 +253,7 @@ def channels_by_asset(path: str) -> pd.DataFrame:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--prices", default="px_clean.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     ap.add_argument("--seeds", type=int, default=25)
     a = ap.parse_args()
 

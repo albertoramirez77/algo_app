@@ -1,7 +1,7 @@
 """
 break_flowbm.py — try to prove the units correction is an accident.
 
-    python break_flowbm.py --prices px_wide.parquet
+    python break_flowbm.py --prices data/px_clean.parquet
 
 THE CLAIM UNDER ATTACK
 
@@ -215,7 +215,7 @@ def line(lbl: str, s: dict, base: float | None = None) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--prices", default="px_wide.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     ap.add_argument("--draws", type=int, default=60)
     a = ap.parse_args()
 

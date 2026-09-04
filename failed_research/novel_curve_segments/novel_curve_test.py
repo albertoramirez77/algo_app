@@ -46,7 +46,7 @@ backfills an unavailable contract. It requires contemporaneous valid observation
 
 Usage
 -----
-    python novel_curve_test.py --prices px_clean.parquet
+    python novel_curve_test.py --prices data/px_clean.parquet
 
 Optional:
     --formation 12       cumulative months used for momentum
@@ -429,7 +429,7 @@ def placebo(panel: pd.DataFrame, signal: str, n: int = 200, seed: int = 7) -> di
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--prices", default="px_clean.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     ap.add_argument("--formation", type=int, default=DEFAULT_FORMATION)
     ap.add_argument("--fit-window", type=int, default=DEFAULT_FIT)
     ap.add_argument("--n-curve", type=int, default=DEFAULT_CURVE)

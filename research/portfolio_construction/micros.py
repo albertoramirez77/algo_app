@@ -1,7 +1,7 @@
 """
 micros.py — could this book actually have been traded in 2012?
 
-    python micros.py --prices px_clean.parquet
+    python micros.py --prices data/px_clean.parquet
 
 THE PROBLEM
 
@@ -168,7 +168,7 @@ def st(r):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--prices", default="px_clean.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     a = ap.parse_args()
     m, dropped = load(a.prices)
     present = [s for s in FULL_SIZE if s in set(m["symbol"])]

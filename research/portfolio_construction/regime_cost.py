@@ -1,7 +1,7 @@
 """
 regime_cost.py — why this sample window, and what does trading it actually cost?
 
-    python regime_cost.py --prices px_clean.parquet
+    python regime_cost.py --prices data/px_clean.parquet
 
 TWO QUESTIONS THE FUND ASKED THAT THE PITCH DOES NOT ANSWER
 
@@ -185,7 +185,7 @@ def st(r: pd.Series) -> dict:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--prices", default="px_clean.parquet")
+    ap.add_argument("--prices", default="data/px_clean.parquet")
     a = ap.parse_args()
 
     df = load_daily(a.prices)
