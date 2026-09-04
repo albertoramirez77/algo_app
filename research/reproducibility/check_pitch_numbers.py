@@ -3,7 +3,7 @@
 check_pitch_numbers.py — assert that every number printed in the pitch still
 matches the run that produced it.
 
-    python check_pitch_numbers.py FINAL_NUMBERS.txt
+    python check_pitch_numbers.py docs/FINAL_NUMBERS.txt
 
 Exits 0 if the document and the run agree, 1 otherwise. Run it before every
 submission and after every re-run; wire it into CI and the "one specification,
@@ -88,7 +88,7 @@ def parse(path: str) -> dict[str, float]:
 
 
 def main() -> int:
-    path = sys.argv[1] if len(sys.argv) > 1 else "FINAL_NUMBERS.txt"
+    path = sys.argv[1] if len(sys.argv) > 1 else "docs/FINAL_NUMBERS.txt"
     actual = parse(path)
 
     width = max(len(c[0]) for c in CLAIMS) + 2
