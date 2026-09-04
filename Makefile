@@ -9,12 +9,17 @@
 #   make figures    regenerate all figures from derived data (no API key)
 #   make exhibits   regenerate the research exhibits         (needs price data)
 #   make all        numbers + derived + figures + exhibits
+#   make mechanism  run the mechanism research scripts        (no API key)
+#   make channels   run the channels research script          (no API key)
+#   make crossasset run the cross-asset research script       (no API key)
+#   make validate   run the validation research script        (no API key)
+#   make check      run the pre-backtest data checks          (no API key; needs cot.parquet)
 
 export PYTHONPATH := $(CURDIR):$(CURDIR)/engine:$(CURDIR)/data/fetch
 
 PRICES ?= data/px_clean.parquet
 
-.PHONY: install test verify smoke numbers derived figures exhibits all clean
+.PHONY: install test verify smoke numbers derived figures exhibits all clean mechanism channels crossasset validate check
 
 install:
 	pip install -r requirements.txt
@@ -27,6 +32,22 @@ verify:
 
 smoke:
 	python engine/immediacy.py --smoke
+
+mechanism:
+	python research/mechanism/pathbm.py --prices $(PRICES)
+	python research/mechanism/decompose_bm.py --prices $(PRICES)
+
+channels:
+	python research/factor_analysis/channels.py --prices $(PRICES)
+
+crossasset:
+	python research/cross_asset/crossasset.py --prices $(PRICES)
+
+validate:
+	python research/validation/validate_bm.py --prices $(PRICES)
+
+check:
+	python data/diagnostics/check_data.py --prices $(PRICES)
 
 numbers:
 	@mkdir -p docs
